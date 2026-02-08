@@ -3,10 +3,10 @@ name: Build LaTeX PDF
 on:
   push:
     branches: [ main, master ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, master ]
-  release:
-    types: [ created ]
 
 jobs:
   build:
@@ -28,10 +28,11 @@ jobs:
         name: notesheet
         path: notesheet.pdf
 
-    - name: Upload to Release
-      if: github.event_name == 'release'
+    - name: Create Release and Upload PDF
+      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
         files: notesheet.pdf
+        generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
