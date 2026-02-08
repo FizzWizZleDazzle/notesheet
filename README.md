@@ -5,13 +5,13 @@
 
 Comprehensive algorithm and data structure reference for competitive programming in Java 17.
 
-## 📥 Download
+## Download
 
 **[Latest PDF Release](../../releases/latest)**
 
 The PDF is automatically built on every commit via GitHub Actions.
 
-## 🏗️ Build Locally
+## Build Locally
 
 ```bash
 make build
@@ -22,7 +22,7 @@ Or manually:
 pdflatex notesheet.tex
 ```
 
-## 📚 What's Included
+## What's Included
 
 ### Java API (4 sections)
 - **Java 17 Features**: var, records, switch expressions, pattern matching
@@ -43,7 +43,7 @@ pdflatex notesheet.tex
 
 See [CONTENTS.md](CONTENTS.md) for the complete list.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 ├── notesheet.tex              # Main document
@@ -55,10 +55,10 @@ See [CONTENTS.md](CONTENTS.md) for the complete list.
 └── CONTRIBUTING.md            # How to add new algorithms
 ```
 
-## 🤝 Contributing
+## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on adding new algorithms.
 
-## 📄 License
+## License
 
 MIT License - Free for educational and competitive programming use.
