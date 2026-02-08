@@ -19,6 +19,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install PyYAML
+      run: pip install pyyaml
+
+    - name: Generate notesheet.tex (minimal profile)
+      run: python3 build.py minimal
+
     - name: Compile LaTeX
       uses: xu-cheng/latex-action@v3
       with:

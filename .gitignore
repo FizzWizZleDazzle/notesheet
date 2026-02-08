@@ -16,8 +16,9 @@
 *.tfm
 *.600gf
 
-# PDF output (available in Releases)
+# Generated files (available in Releases)
 *.pdf
+notesheet.tex
 
 # OS files
 .DS_Store

@@ -13,14 +13,22 @@ The PDF is automatically built on every commit via GitHub Actions.
 
 ## Build Locally
 
+Two versions available:
+- **Minimal**: Core algorithms and API
+- **Full**: All algorithms and advanced topics
+
 ```bash
-make build
+make build-minimal  # Default - builds minimal version
+make build-full     # Builds full version
 ```
 
 Or manually:
 ```bash
+python3 build.py minimal  # or 'full'
 pdflatex notesheet.tex
 ```
+
+**Requirements**: Python 3 with PyYAML (`pip install pyyaml`)
 
 ## What's Included
 

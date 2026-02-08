@@ -1,0 +1,32 @@
+# Build configuration for notesheet
+# Specify which sections to include in different build profiles
+
+profiles:
+  # Full version - everything included
+  full:
+    - 01_java17_features
+    - 02_core_api
+    - 03_streams
+    - 04_bitset
+    - 10_number_theory
+    - 11_graph_algorithms
+    - 12_dynamic_programming
+    - 13_array_techniques
+    - 14_combinatorial
+    - 15_geometry
+    - 16_string_algorithms
+    - 17_advanced_algorithms
+    - 18_tree_algorithms
+    - 19_advanced_graph
+    - 20_advanced_ds
+    - 21_tips
+
+  # Minimal version - core algorithms and API only
+  minimal:
+    - 01_java17_features
+    - 02_core_api
+    - 10_number_theory
+    - 11_graph_algorithms
+    - 12_dynamic_programming
+    - 13_array_techniques
+    - 21_tips
