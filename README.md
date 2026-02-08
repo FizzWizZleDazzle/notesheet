@@ -7,9 +7,11 @@ Comprehensive algorithm and data structure reference for competitive programming
 
 ## Download
 
-**[Latest PDF Release](../../releases/latest)**
+**[Latest Release](../../releases/latest)** includes:
+- **cheatsheet.pdf** - Minimal version (core algorithms and API)
+- **notesheet.pdf** - Full version (all algorithms and advanced topics)
 
-The PDF is automatically built on every commit via GitHub Actions.
+Both PDFs are automatically built on every commit via GitHub Actions.
 
 ## Build Locally
 
