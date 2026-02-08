@@ -1,0 +1,192 @@
+\section{Dynamic Programming}
+% ============================================================
+
+\begin{desc}
+\textbf{Dynamic Programming} solves problems by breaking them into overlapping
+subproblems and storing results to avoid recomputation.\\
+\textbf{Two key properties}:
+(1) \textbf{Optimal substructure}---optimal solution contains optimal solutions to subproblems.
+(2) \textbf{Overlapping subproblems}---same subproblems recur many times.\\
+\textbf{Approach}: identify state $\to$ write recurrence $\to$ determine evaluation order $\to$
+code bottom-up (or top-down with memoization).
+\end{desc}
+
+\subsection{0/1 Knapsack}
+\begin{desc}
+Given $n$ items with weights $w_i$ and values $v_i$, and a knapsack of capacity $C$,
+maximize total value without exceeding capacity. Each item is either \textbf{taken or not} (no fractions).\\
+State: $\text{dp}[i][j]$ = max value using first $i$ items with capacity $j$.\\
+Recurrence: $\text{dp}[i][j] = \max(\text{dp}[i-1][j],\; \text{dp}[i-1][j-w_i] + v_i)$ if $w_i \le j$.
+\end{desc}
+\complexity{$O(nC)$}{$O(nC)$, or $O(C)$ with space optimization}
+\begin{lstlisting}
+static int knapsack(int[] w, int[] v,
+    int cap) {
+  int n = w.length;
+  var dp = new int[n + 1][cap + 1];
+  for (int i = 1; i <= n; i++)
+    for (int j = 0; j <= cap; j++) {
+      dp[i][j] = dp[i-1][j]; // skip item i
+      if (w[i-1] <= j)       // take item i
+        dp[i][j] = Math.max(dp[i][j],
+          dp[i-1][j - w[i-1]] + v[i-1]);
+    }
+  return dp[n][cap];
+}
+\end{lstlisting}
+
+\subsection{Longest Common Subsequence (LCS)}
+\begin{desc}
+Find the longest subsequence common to two strings. A \textbf{subsequence} keeps
+order but can skip characters (not necessarily contiguous).\\
+State: $\text{dp}[i][j]$ = LCS length of $a[0..i{-}1]$ and $b[0..j{-}1]$.\\
+Recurrence: If $a[i{-}1] = b[j{-}1]$: extend by 1. Otherwise: take max of skipping
+from either string.\\
+Useful for text comparison, diff algorithms, edit distance variations.
+\end{desc}
+\complexity{$O(mn)$}{$O(mn)$}
+\begin{lstlisting}
+static int lcs(String a, String b) {
+  int m = a.length(), n = b.length();
+  var dp = new int[m + 1][n + 1];
+  for (int i = 1; i <= m; i++)
+    for (int j = 1; j <= n; j++)
+      dp[i][j] =
+        a.charAt(i-1) == b.charAt(j-1)
+          ? dp[i-1][j-1] + 1
+          : Math.max(dp[i-1][j],
+                     dp[i][j-1]);
+  return dp[m][n];
+}
+\end{lstlisting}
+
+\subsection{Coin Change (Unbounded Knapsack)}
+\begin{desc}
+Find the \textbf{minimum number of coins} to make a target amount, with unlimited
+supply of each denomination.\\
+State: $\text{dp}[j]$ = min coins to make amount $j$.\\
+Recurrence: For each coin $c$: $\text{dp}[j] = \min(\text{dp}[j],\; \text{dp}[j-c] + 1)$.\\
+Can be adapted to count ways, find all combinations, etc.
+\end{desc}
+\complexity{$O(n \cdot \text{amt})$}{$O(\text{amt})$}
+\begin{lstlisting}
+static int coinChange(int[] coins, int amt) {
+  var dp = new int[amt + 1];
+  Arrays.fill(dp, amt + 1); // "infinity"
+  dp[0] = 0;
+  for (int c : coins)
+    for (int j = c; j <= amt; j++)
+      dp[j] = Math.min(dp[j], dp[j-c] + 1);
+  return dp[amt] > amt ? -1 : dp[amt];
+}
+\end{lstlisting}
+
+\subsection{Longest Increasing Subsequence (LIS)}
+\begin{desc}
+Find the length of the longest \textbf{strictly increasing} subsequence.\\
+The $O(n \log n)$ approach maintains an array \texttt{tails} where \texttt{tails[i]}
+is the smallest tail element of all increasing subsequences of length $i+1$.
+For each element, binary search its position and update.\\
+Useful for sequence optimization and patience sorting.
+\end{desc}
+\complexity{$O(n \log n)$}{$O(n)$}
+\begin{lstlisting}
+static int lis(int[] a) {
+  var tails = new ArrayList<Integer>();
+  for (int x : a) {
+    int pos = Collections
+      .binarySearch(tails, x);
+    if (pos < 0) pos = -(pos + 1);
+    if (pos == tails.size()) tails.add(x);
+    else tails.set(pos, x);
+  }
+  return tails.size();
+}
+\end{lstlisting}
+
+\subsection{Subset Sum (Exact Match)}
+\begin{desc}
+Determine if any subset of items sums to exactly a target value.
+This is the decision version of 0/1 knapsack (exists vs. optimize).\\
+State: $\text{dp}[j]$ = true if sum $j$ is achievable.\\
+Common in partition problems, exact matching, and backpack variants.
+\end{desc}
+\complexity{$O(n \cdot \text{target})$}{$O(\text{target})$}
+\begin{lstlisting}
+static boolean subsetSum(int[] a, int target){
+  var dp = new boolean[target + 1];
+  dp[0] = true;
+  for (int x : a)
+    // Iterate backwards to avoid using same item twice
+    for (int j = target; j >= x; j--)
+      if (dp[j - x]) dp[j] = true;
+  return dp[target];
+}
+// To reconstruct which items: track parent pointers
+// or use 2D dp and backtrack
+\end{lstlisting}
+
+\subsection{Bitmask DP}
+\begin{desc}
+When the number of elements is small, represent the ``used'' set as a bitmask.
+State: $\text{dp}[\text{mask}]$ = best result using the subset encoded by mask.\\
+\textbf{Applications}: assignment problems, traveling salesman (TSP), set cover,
+Hamiltonian path, puzzle states.\\
+For $n \le 20$: use \texttt{int} or \texttt{long} bitmask (fits in memory: $2^{20} \approx 1$M states).\\
+For $n \le 64$: use \texttt{long} bitmask.\\
+For $n > 64$: use \texttt{BitSet} (see Java API section).
+\end{desc}
+\begin{lstlisting}
+// Example: assign n tasks to n workers (n <= 20)
+// dp[mask] = min cost when tasks in "mask" done
+var dp = new int[1 << n];
+Arrays.fill(dp, Integer.MAX_VALUE);
+dp[0] = 0;
+
+for (int mask = 0; mask < (1<<n); mask++) {
+  if (dp[mask] == Integer.MAX_VALUE) continue;
+  int worker = Integer.bitCount(mask);
+  for (int task = 0; task < n; task++) {
+    if ((mask & (1<<task)) != 0) continue;
+    int next = mask | (1 << task);
+    dp[next] = Math.min(dp[next],
+      dp[mask] + cost[worker][task]);
+  }
+}
+// answer = dp[(1<<n) - 1]
+
+// For n > 64, use BitSet instead:
+var dp2 = new HashMap<BitSet, Integer>();
+var initial = new BitSet();
+dp2.put(initial, 0);
+// ... iterate through states using BitSet operations
+\end{lstlisting}
+
+\subsection{Grid DP}
+\begin{desc}
+Count paths or find optimal value traversing a grid from top-left to bottom-right
+(moving only right/down, or with other directional constraints).\\
+State: $\text{dp}[i][j]$ = best value or count to reach cell $(i,j)$.\\
+Common in grid optimization, robot path counting, matrix chain problems.
+\end{desc}
+\begin{lstlisting}
+// Max sum path (right/down only)
+var dp = new long[R][C];
+dp[0][0] = grid[0][0];
+
+// Fill first row and column
+for (int i = 1; i < R; i++)
+  dp[i][0] = dp[i-1][0] + grid[i][0];
+for (int j = 1; j < C; j++)
+  dp[0][j] = dp[0][j-1] + grid[0][j];
+
+// Fill rest
+for (int i = 1; i < R; i++)
+  for (int j = 1; j < C; j++)
+    dp[i][j] = Math.max(dp[i-1][j],
+      dp[i][j-1]) + grid[i][j];
+
+// answer = dp[R-1][C-1]
+\end{lstlisting}
+
+% ============================================================

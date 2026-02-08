@@ -1,0 +1,33 @@
+\section{Common Patterns \& Tips}
+% ============================================================
+
+\begin{desc}
+Practical tips from competitive programming.
+\end{desc}
+
+\begin{itemize}[leftmargin=14pt]
+\item \textbf{Integer overflow}: Use \texttt{long} for any product or sum that could exceed $2 \times 10^9$. Cast early: \texttt{(long)a * b}.
+
+\item \textbf{Modular arithmetic}: When working mod $m$, keep intermediate results in range. $(a \cdot b) \bmod m = ((a \bmod m) \cdot (b \bmod m)) \bmod m$.
+
+\item \textbf{Frequency counting}: \texttt{map.merge(key, 1, Integer::sum)} is idiomatic.
+
+\item \textbf{Grid direction arrays}: 4-directional: \texttt{int[] DR=\{-1,1,0,0\}, DC=\{0,0,-1,1\}}.
+  8-directional: add 4 diagonals.
+
+\item \textbf{Floating-point comparison}: never use \texttt{==}. Use \texttt{Math.abs(a - b) < 1e-9}.
+
+\item \textbf{Coordinate compression}: when values are large but sparse, map them to
+  $0, 1, 2, \ldots$ Sort unique values, then binary search for indices.
+
+\item \textbf{Cycle detection in directed graph}: 3-color DFS (white = unvisited, gray = in progress, black = done). Back edge to gray node means cycle.
+
+\item \textbf{Bipartite check}: 2-color BFS/DFS. Start with color 0, alternate colors.
+  If a neighbor has the same color, not bipartite.
+
+\item \textbf{Avoid TLE with I/O}: Use \texttt{BufferedReader} for input and \texttt{PrintWriter} for output on large test cases.
+
+\item \textbf{Array of lists}: Java requires unchecked cast---use \texttt{@SuppressWarnings("unchecked")}.
+
+\item \textbf{Clone defensively}: Don't modify input unless the problem allows. Clone with \texttt{.clone()} or \texttt{Arrays.copyOf()}.
+\end{itemize}

@@ -1,0 +1,97 @@
+\section{Number Theory}
+% ============================================================
+
+\subsection{GCD and LCM}
+\begin{desc}
+\textbf{Greatest Common Divisor} via the Euclidean algorithm: repeatedly
+replace \texttt{(a, b)} with \texttt{(b, a \% b)} until \texttt{b = 0}.
+\textbf{LCM} computed as $\text{lcm}(a,b) = a / \gcd(a,b) \times b$
+(divide first to avoid overflow).
+Essential for problems involving divisibility, fractions, and coprimality.
+\end{desc}
+\complexity{$O(\log(\min(a,b)))$}{$O(1)$}
+\begin{lstlisting}
+static long gcd(long a, long b) {
+  return b == 0 ? a : gcd(b, a % b);
+}
+static long lcm(long a, long b) {
+  return a / gcd(a, b) * b;
+}
+\end{lstlisting}
+
+\subsection{Modular Exponentiation}
+\begin{desc}
+Computes $\text{base}^{\text{exp}} \bmod m$ using \textbf{binary exponentiation}
+(a.k.a.\ fast power). At each step, square the base and halve the exponent.
+If the exponent bit is 1, multiply into the result.
+Common in modular arithmetic problems and cryptography.
+\end{desc}
+\complexity{$O(\log \text{exp})$}{$O(1)$}
+\begin{lstlisting}
+static long power(long base, long exp,
+    long mod) {
+  long res = 1;
+  base %= mod;
+  while (exp > 0) {
+    if ((exp & 1) == 1)
+      res = res * base % mod;
+    exp >>= 1;
+    base = base * base % mod;
+  }
+  return res;
+}
+\end{lstlisting}
+
+\subsection{Modular Inverse}
+\begin{desc}
+If $m$ is prime, then $a^{-1} \equiv a^{m-2} \pmod{m}$ by Fermat's little theorem.
+Use this to compute division under modular arithmetic:
+$a / b \bmod m = a \cdot b^{-1} \bmod m$.
+Essential for combinatorics under modulo.
+\end{desc}
+\begin{lstlisting}
+static long modInv(long a, long mod) {
+  return power(a, mod - 2, mod);
+}
+\end{lstlisting}
+
+\subsection{Sieve of Eratosthenes}
+\begin{desc}
+Finds all primes up to $n$. Mark all multiples of each prime starting from $i^2$
+(smaller multiples already marked by smaller primes).
+Useful for prime factorization, number theory problems, and prime queries.
+\end{desc}
+\complexity{$O(n \log \log n)$}{$O(n)$}
+\begin{lstlisting}
+static boolean[] sieve(int n) {
+  var isP = new boolean[n + 1];
+  Arrays.fill(isP, true);
+  isP[0] = isP[1] = false;
+  for (int i = 2; (long)i * i <= n; i++)
+    if (isP[i])
+      for (int j = i*i; j <= n; j += i)
+        isP[j] = false;
+  return isP;
+}
+\end{lstlisting}
+
+\subsection{Combinatorics --- Pascal's Triangle}
+\begin{desc}
+Precomputes $\binom{n}{r}$ for all $0 \le r \le n$ using the identity
+$\binom{n}{r} = \binom{n-1}{r-1} + \binom{n-1}{r}$.
+Watch for overflow---use \texttt{long} or apply modular arithmetic.
+Useful for counting problems involving selection and arrangements.
+\end{desc}
+\begin{lstlisting}
+static long[][] pascal(int n) {
+  var C = new long[n + 1][n + 1];
+  for (int i = 0; i <= n; i++) {
+    C[i][0] = 1;
+    for (int j = 1; j <= i; j++)
+      C[i][j] = C[i-1][j-1] + C[i-1][j];
+  }
+  return C;
+}
+\end{lstlisting}
+
+% ============================================================

@@ -1,0 +1,102 @@
+\section{Java 17 Features}
+% ============================================================
+
+\begin{desc}
+Java 17 introduces several features that reduce boilerplate and improve clarity.
+Use these throughout your solutions.
+\end{desc}
+
+\subsection{var --- Local Type Inference}
+\begin{desc}
+The compiler infers the type from the right-hand side. Works for local variables only
+(not fields, parameters, or return types). Reduces verbosity with generics.
+\end{desc}
+\begin{lstlisting}
+var list = new ArrayList<Integer>();
+var map  = new HashMap<String, Integer>();
+var sb   = new StringBuilder();
+var pq   = new PriorityQueue<int[]>(
+  Comparator.comparingInt(a -> a[0]));
+\end{lstlisting}
+
+\subsection{Records --- Immutable Data Carriers}
+\begin{desc}
+A \texttt{record} automatically generates a constructor, accessors (\texttt{.x()}, \texttt{.y()}),
+\texttt{equals()}, \texttt{hashCode()}, and \texttt{toString()}.
+Perfect for graph edges, points, BFS states, coordinate pairs, etc.
+\end{desc}
+\begin{lstlisting}
+record Point(int x, int y) {}
+record Edge(int u, int v, int w)
+  implements Comparable<Edge> {
+  public int compareTo(Edge o) {
+    return Integer.compare(w, o.w);
+  }
+}
+var p = new Point(3, 4);
+System.out.println(p.x()); // 3
+\end{lstlisting}
+
+\subsection{Switch Expressions}
+\begin{desc}
+Switch can now return a value and use arrow syntax. No fall-through issues.
+Use \texttt{yield} for multi-statement blocks.
+\end{desc}
+\begin{lstlisting}
+String result = switch (type) {
+  case 1, 7  -> "weekend";
+  case 2,3,4,5,6 -> "weekday";
+  default    -> "unknown";
+};
+
+// With yield for multi-line
+int val = switch (x) {
+  case 1 -> {
+    System.out.println("One");
+    yield 100;
+  }
+  case 2 -> 200;
+  default -> 0;
+};
+\end{lstlisting}
+
+\subsection{Pattern Matching for instanceof}
+\begin{desc}
+Combines type checking and casting in one step. The variable is already cast and
+in scope for the if-block.
+\end{desc}
+\begin{lstlisting}
+if (obj instanceof String s) {
+  // s is already cast to String
+  System.out.println(s.length());
+}
+
+if (obj instanceof Integer i && i > 0) {
+  // can use i immediately in condition
+  System.out.println("Positive: " + i);
+}
+\end{lstlisting}
+
+\subsection{Immutable Collections}
+\begin{desc}
+\texttt{List.of()}, \texttt{Set.of()}, \texttt{Map.of()} create immutable collections.
+Useful for constants and preventing accidental modification.
+Attempting to modify throws \texttt{UnsupportedOperationException}.
+\end{desc}
+\begin{lstlisting}
+var nums = List.of(1, 2, 3); // immutable
+var set  = Set.of("a", "b", "c");
+var m    = Map.of("k1", 1, "k2", 2);
+
+// Map.of only works up to 10 entries
+// For more, use Map.ofEntries:
+var big = Map.ofEntries(
+  Map.entry("a", 1),
+  Map.entry("b", 2)
+  // ...
+);
+
+// List.copyOf, Set.copyOf - defensive copies
+var copy = List.copyOf(mutableList);
+\end{lstlisting}
+

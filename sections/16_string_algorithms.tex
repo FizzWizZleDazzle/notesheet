@@ -1,0 +1,71 @@
+\section{String Algorithms}
+% ============================================================
+
+\subsection{Bracket / Parentheses Matching}
+\begin{desc}
+A string of parentheses is \textbf{balanced} if:
+(1) Every \texttt{'('} has a matching \texttt{')'},
+(2) At no prefix does \texttt{')'} count exceed \texttt{'('} count.\\
+Use a counter: increment for \texttt{'('}, decrement for \texttt{')'},
+check it never goes negative and ends at zero.\\
+Common in expression parsing, validity checking.
+\end{desc}
+\complexity{$O(n)$ where $n$ = string length}{$O(1)$}
+\begin{lstlisting}
+static boolean isBalanced(String s) {
+  int cnt = 0;
+  for (char c : s.toCharArray()) {
+    if (c == '(') cnt++;
+    else if (c == ')') cnt--;
+    if (cnt < 0) return false; // too many ')'
+  }
+  return cnt == 0; // equal counts
+}
+
+// Minimum swaps to balance (one type of repair)
+static int minSwapsToBalance(String s) {
+  int open = 0, unmatched = 0;
+  for (char c : s.toCharArray()) {
+    if (c == '(') open++;
+    else if (open > 0) open--;
+    else unmatched++;
+  }
+  return (unmatched + 1) / 2;
+}
+\end{lstlisting}
+
+\subsection{String Hashing (Rabin-Karp)}
+\begin{desc}
+Computes a \textbf{polynomial rolling hash} for substrings in $O(1)$ after $O(n)$ preprocessing.\\
+Hash formula: $\text{hash}[i] = \sum_{j=0}^{i-1} s[j] \cdot \text{BASE}^{i-1-j} \bmod \text{MOD}$.\\
+\textbf{Use for}: fast substring comparison, pattern matching, duplicate detection,
+finding repeated patterns.\\
+Choose BASE (typically 31 or 37 for strings) and a large prime MOD ($10^9+7$ or $10^9+9$).
+\end{desc}
+\complexity{Build: $O(n)$, Query: $O(1)$ per substring}{$O(n)$}
+\begin{lstlisting}
+static final long MOD = 1_000_000_007L;
+static final long BASE = 31;
+static long[] hash, pw; // precomputed arrays
+
+static void buildHash(String s) {
+  int n = s.length();
+  hash = new long[n + 1];
+  pw = new long[n + 1];
+  pw[0] = 1;
+  for (int i = 0; i < n; i++) {
+    hash[i+1] = (hash[i] * BASE
+      + s.charAt(i) - 'a' + 1) % MOD;
+    pw[i+1] = pw[i] * BASE % MOD;
+  }
+}
+
+// Hash of substring s[l..r] inclusive, O(1)
+static long getHash(int l, int r) {
+  return (hash[r+1]
+    - hash[l] * pw[r-l+1] % MOD
+    + MOD) % MOD;
+}
+\end{lstlisting}
+
+% ============================================================

@@ -1,0 +1,94 @@
+\section{Advanced Data Structures}
+% ============================================================
+
+\subsection{Segment Tree (Range Queries)}
+\begin{desc}
+Supports \textbf{point updates} and \textbf{range queries} (sum, min, max, GCD, etc.)
+in $O(\log n)$ each. Build in $O(n)$.\\
+\textbf{Structure}: complete binary tree stored in an array of size $4n$.
+Node $i$'s children are $2i$ and $2i+1$. Leaf nodes represent individual elements.\\
+Use when you need both efficient updates and range queries.
+\end{desc}
+\complexity{Build: $O(n)$, Query/Update: $O(\log n)$}{$O(n)$}
+\begin{lstlisting}
+static int[] tree;
+static int[] arr;
+
+static void build(int node, int s, int e) {
+  if (s == e) {
+    tree[node] = arr[s];
+    return;
+  }
+  int mid = (s + e) / 2;
+  build(2*node, s, mid);
+  build(2*node+1, mid+1, e);
+  tree[node] = tree[2*node] + tree[2*node+1];
+}
+
+static int query(int node, int s, int e,
+    int l, int r) {
+  if (r < s || e < l) return 0; // disjoint
+  if (l <= s && e <= r) return tree[node]; // fully inside
+  int mid = (s + e) / 2;
+  return query(2*node, s, mid, l, r)
+    + query(2*node+1, mid+1, e, l, r);
+}
+
+static void update(int node, int s, int e,
+    int idx, int val) {
+  if (s == e) {
+    tree[node] = val;
+    return;
+  }
+  int mid = (s + e) / 2;
+  if (idx <= mid)
+    update(2*node, s, mid, idx, val);
+  else
+    update(2*node+1, mid+1, e, idx, val);
+  tree[node] = tree[2*node] + tree[2*node+1];
+}
+
+// Usage:
+tree = new int[4 * n];
+build(1, 0, n - 1);
+int sum = query(1, 0, n-1, l, r);
+update(1, 0, n-1, idx, newVal);
+\end{lstlisting}
+
+\subsection{Fenwick Tree (Binary Indexed Tree)}
+\begin{desc}
+A simpler alternative to Segment Tree for \textbf{prefix sum queries} and
+\textbf{point updates}. Uses the lowest set bit trick (\texttt{i \& (-i)}) for navigation.\\
+Much shorter to code than Segment Tree. Cannot handle arbitrary range queries
+(only prefix sums), but range sums can be computed as difference of two prefix sums.\\
+Useful for dynamic cumulative frequency tables, inversion counting.
+\end{desc}
+\complexity{Query/Update: $O(\log n)$}{$O(n)$}
+\begin{lstlisting}
+static int[] bit;
+static int n;
+
+static void init(int size) {
+  n = size;
+  bit = new int[n + 1]; // 1-indexed
+}
+
+static void update(int i, int delta) {
+  for (i++; i <= n; i += i & (-i))
+    bit[i] += delta;
+}
+
+static int query(int i) { // prefix sum [0, i]
+  int sum = 0;
+  for (i++; i > 0; i -= i & (-i))
+    sum += bit[i];
+  return sum;
+}
+
+// Range sum [l, r]:
+static int rangeQuery(int l, int r) {
+  return query(r) - (l > 0 ? query(l-1) : 0);
+}
+\end{lstlisting}
+
+% ============================================================

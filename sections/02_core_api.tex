@@ -1,0 +1,434 @@
+\section{Core Java API}
+% ============================================================
+
+\subsection{String}
+\begin{desc}
+Strings are immutable. All operations return new strings.
+Essential for text processing, parsing, and pattern matching problems.
+\end{desc}
+\complexity{charAt/length: $O(1)$, substring/indexOf/contains: $O(n)$}{$O(n)$ per string}
+\begin{lstlisting}
+// Length and access
+s.length();        // number of characters
+s.charAt(i);       // char at index i (0-indexed)
+s.isEmpty();       // true if length is 0
+s.isBlank();       // true if empty or all whitespace
+
+// Substring operations
+s.substring(i, j); // [i, j) - from i to j-1
+s.substring(i);    // from i to end
+
+// Search - returns index or -1
+s.indexOf("sub");     // first occurrence
+s.lastIndexOf("sub"); // last occurrence
+s.contains("sub");    // boolean check
+
+// Case conversion
+s.toLowerCase();   // all lowercase
+s.toUpperCase();   // all uppercase
+
+// Whitespace handling
+s.trim();          // remove leading/trailing
+s.strip();         // Java 11+, better Unicode
+s.stripLeading();  // only leading
+s.stripTrailing(); // only trailing
+
+// Splitting and joining
+s.split("\\s+");  // split by whitespace regex
+s.split(",", -1); // keep empty strings
+String.join(", ", list); // join with delimiter
+
+// Replace
+s.replace("old", "new"); // all occurrences
+s.replaceFirst("old", "new"); // first only
+s.replaceAll("\\d+", "X"); // regex replace
+
+// Repeat (Java 11+)
+s.repeat(n);  // repeat string n times
+
+// Comparison
+s.equals(t);         // content equality
+s.equalsIgnoreCase(t); // case-insensitive
+s.compareTo(t);      // lexicographic <0,0,>0
+s.startsWith("pre"); // boolean
+s.endsWith("suf");   // boolean
+
+// Conversion
+s.toCharArray();      // to char[]
+String.valueOf(num);  // any type to String
+Integer.parseInt(s);  // String to int
+Long.parseLong(s);    // String to long
+Double.parseDouble(s); // String to double
+\end{lstlisting}
+
+\subsection{StringBuilder}
+\begin{desc}
+Mutable string builder. Use when building strings in a loop.
+String concatenation in loops is $O(n^2)$; StringBuilder is $O(n)$.
+Not thread-safe (use StringBuffer for thread safety).
+\end{desc}
+\complexity{append/insert/delete: $O(1)$ amortized, reverse: $O(n)$}{$O(n)$}
+\begin{lstlisting}
+var sb = new StringBuilder();
+var sb2 = new StringBuilder("initial");
+var sb3 = new StringBuilder(100); // capacity
+
+// Append (returns this, can chain)
+sb.append("text").append(42).append('c');
+sb.append(3.14);
+
+// Insert at position
+sb.insert(i, "x");
+
+// Delete range [i, j)
+sb.delete(i, j);
+sb.deleteCharAt(i); // delete single char
+
+// Replace range with string
+sb.replace(i, j, "replacement");
+
+// Reverse entire string
+sb.reverse();
+
+// Access/modify
+sb.charAt(i);
+sb.setCharAt(i, 'c');
+sb.length();
+
+// Convert to String
+String result = sb.toString();
+\end{lstlisting}
+
+\subsection{Character}
+\begin{desc}
+Character utility methods for classification and conversion.
+\end{desc}
+\complexity{All operations: $O(1)$}{$O(1)$}
+\begin{lstlisting}
+Character.isDigit(c);  // '0'-'9'
+Character.isLetter(c); // a-z, A-Z
+Character.isLetterOrDigit(c);
+Character.isWhitespace(c);
+Character.isUpperCase(c);
+Character.isLowerCase(c);
+
+Character.toUpperCase(c);
+Character.toLowerCase(c);
+
+// Convert char <-> int
+int idx = c - 'a';     // 0-25 for lowercase
+char ch = (char)('a' + idx);
+int digit = c - '0';   // char digit to int
+char digitCh = (char)('0' + digit);
+\end{lstlisting}
+
+\subsection{Arrays}
+\begin{desc}
+Static utility methods for arrays. Most operations are in-place or create new arrays.
+Note: primitive arrays (int[]) cannot use Comparator---box to Integer[] first.
+\end{desc}
+\complexity{sort: $O(n \log n)$, binarySearch: $O(\log n)$, fill/copy: $O(n)$}{$O(\log n)$ for sort stack}
+\begin{lstlisting}
+var a = new int[n];
+var g = new int[rows][cols];
+
+// Sorting - uses dual-pivot quicksort
+Arrays.sort(a);           // entire array O(n log n)
+Arrays.sort(a, from, to); // sort [from, to)
+
+// Fill with value
+Arrays.fill(a, val);
+Arrays.fill(a, from, to, val); // range only
+
+// Copy
+Arrays.copyOf(a, newLength); // truncate or pad
+Arrays.copyOfRange(a, from, to); // [from, to)
+
+// Comparison
+Arrays.equals(a, b);     // element-wise equality
+Arrays.compare(a, b);    // lexicographic
+
+// Binary search (array MUST be sorted first)
+int idx = Arrays.binarySearch(a, key);
+// If found: returns index
+// If not found: returns -(insertion_point) - 1
+//   where insertion_point is where it would go
+
+// Sort with comparator (requires Integer[])
+var arr = new Integer[n];
+Arrays.sort(arr, Comparator.reverseOrder());
+Arrays.sort(arr, (x, y) -> Integer.compare(y, x));
+
+// Sort 2D array by first element, then second
+int[][] pts = ...;
+Arrays.sort(pts, Comparator
+  .comparingInt((int[] p) -> p[0])
+  .thenComparingInt(p -> p[1]));
+\end{lstlisting}
+
+\subsection{ArrayList}
+\begin{desc}
+Resizable array. $O(1)$ amortized append, $O(1)$ random access,
+$O(n)$ insert/remove in middle. Backed by an array that doubles when full.
+\end{desc}
+\complexity{add: $O(1)$ amortized, get/set: $O(1)$, remove/insert: $O(n)$, contains: $O(n)$}{$O(n)$}
+\begin{lstlisting}
+var list = new ArrayList<Integer>();
+var list2 = new ArrayList<Integer>(100); // initial capacity
+
+// Add elements
+list.add(x);         // append to end O(1) amortized
+list.add(i, x);      // insert at index i O(n)
+
+// Access and modify
+list.get(i);         // element at index i O(1)
+list.set(i, x);      // replace at index i O(1)
+
+// Remove
+list.remove(i);                // by index O(n), returns element
+list.remove(Integer.valueOf(x)); // by value O(n), returns boolean
+list.clear();                  // remove all O(n)
+
+// Size and checks
+list.size();         // number of elements
+list.isEmpty();      // true if size == 0
+list.contains(x);    // O(n) linear search
+list.indexOf(x);     // first occurrence, -1 if none
+list.lastIndexOf(x); // last occurrence, -1 if none
+
+// Bulk operations via Collections class
+Collections.sort(list);        // O(n log n)
+Collections.reverse(list);     // O(n)
+Collections.shuffle(list);     // O(n)
+Collections.min(list);         // O(n)
+Collections.max(list);         // O(n)
+Collections.swap(list, i, j);  // swap two elements
+
+// Convert to array
+Integer[] arr = list.toArray(new Integer[0]);
+int[] primArr = list.stream()
+  .mapToInt(Integer::intValue).toArray();
+\end{lstlisting}
+
+\subsection{HashMap / HashSet}
+\begin{desc}
+Hash-based collections with $O(1)$ average time for basic operations.
+HashMap stores key-value pairs; HashSet stores unique elements.
+\texttt{merge} is the idiomatic way to do frequency counting.
+\end{desc}
+\complexity{put/get/remove/contains: $O(1)$ average, $O(n)$ worst case}{$O(n)$ where $n$ = entries}
+\begin{lstlisting}
+// HashMap
+var map = new HashMap<String, Integer>();
+
+// Put and get
+map.put(key, val);         // add or update O(1) avg
+map.get(key);              // null if absent
+map.getOrDefault(key, 0);  // with default value
+map.containsKey(key);      // O(1) avg
+map.containsValue(val);    // O(n) - scans all values
+
+// Remove
+map.remove(key);           // returns old value or null
+map.clear();               // remove all entries
+
+// Size
+map.size();
+map.isEmpty();
+
+// Frequency counting (idiomatic)
+map.merge(key, 1, Integer::sum);
+// Equivalent to:
+// map.put(key, map.getOrDefault(key, 0) + 1);
+
+// Advanced put operations
+map.putIfAbsent(key, defaultVal);
+map.computeIfAbsent(key, k -> expensiveFunc(k));
+map.computeIfPresent(key, (k, v) -> v + 1);
+
+// Iteration
+for (var entry : map.entrySet()) {
+  var k = entry.getKey();
+  var v = entry.getValue();
+  entry.setValue(newValue); // can modify
+}
+for (var key : map.keySet()) { ... }
+for (var val : map.values()) { ... }
+
+// HashSet
+var set = new HashSet<Integer>();
+set.add(x);       // returns true if added (wasn't there)
+set.remove(x);    // returns true if removed (was there)
+set.contains(x);  // O(1) average
+set.size();
+set.isEmpty();
+set.clear();
+
+// Set operations (modify setA)
+setA.addAll(setB);      // union
+setA.retainAll(setB);   // intersection
+setA.removeAll(setB);   // difference
+\end{lstlisting}
+
+\subsection{TreeMap / TreeSet}
+\begin{desc}
+Sorted maps and sets backed by red-black tree. All operations are $O(\log n)$.
+Use when you need sorted order, or range queries like floor/ceiling.
+Maintains keys/elements in natural order or custom Comparator order.
+\end{desc}
+\complexity{put/get/remove/floor/ceiling: $O(\log n)$}{$O(n)$}
+\begin{lstlisting}
+var tm = new TreeMap<Integer, String>();
+var ts = new TreeSet<Integer>();
+
+// Basic operations - same as HashMap/HashSet
+tm.put(key, val);
+tm.get(key);
+tm.remove(key);
+
+// Ordered operations - TreeMap
+tm.firstKey();     // smallest key, throws if empty
+tm.lastKey();      // largest key, throws if empty
+tm.floorKey(k);    // largest key <= k, null if none
+tm.ceilingKey(k);  // smallest key >= k, null if none
+tm.lowerKey(k);    // largest key < k, null if none
+tm.higherKey(k);   // smallest key > k, null if none
+
+// Entry operations - get key AND value together
+tm.firstEntry();   // Map.Entry<K,V>
+tm.lastEntry();
+tm.floorEntry(k);
+tm.ceilingEntry(k);
+tm.pollFirstEntry(); // remove and return
+tm.pollLastEntry();
+
+// Range views (submaps)
+tm.headMap(toKey);           // keys < toKey
+tm.tailMap(fromKey);         // keys >= fromKey
+tm.subMap(fromKey, toKey);   // [from, to)
+
+// TreeSet - simpler since no values
+ts.first();     // smallest, throws if empty
+ts.last();      // largest, throws if empty
+ts.floor(x);    // largest element <= x, null if none
+ts.ceiling(x);  // smallest element >= x, null if none
+ts.lower(x);    // largest element < x, null if none
+ts.higher(x);   // smallest element > x, null if none
+
+ts.pollFirst(); // remove and return min
+ts.pollLast();  // remove and return max
+
+ts.headSet(toElement);        // elements < to
+ts.tailSet(fromElement);      // elements >= from
+ts.subSet(fromElement, toElement); // [from, to)
+\end{lstlisting}
+
+\subsection{Queue / Deque / Stack}
+\begin{desc}
+Queue for BFS, Deque for both queue and stack operations.
+Use \texttt{ArrayDeque} instead of the legacy \texttt{Stack} class.
+\end{desc}
+\complexity{offer/poll/peek/push/pop: $O(1)$}{$O(n)$ where $n$ = elements stored}
+\begin{lstlisting}
+// Queue (FIFO) - use ArrayDeque for best performance
+Queue<Integer> q = new ArrayDeque<>();
+q.offer(x);   // enqueue, returns boolean
+q.poll();     // dequeue, returns null if empty
+q.peek();     // view front, returns null if empty
+q.size();
+q.isEmpty();
+
+// Deque (double-ended queue)
+var dq = new ArrayDeque<Integer>();
+
+// Queue-style (FIFO)
+dq.offerLast(x);  // enqueue at back
+dq.pollFirst();   // dequeue from front
+
+// Stack-style (LIFO) - preferred over Stack class
+dq.push(x);       // push (same as offerFirst)
+dq.pop();         // pop (same as pollFirst)
+dq.peek();        // top (same as peekFirst)
+
+// Full double-ended API
+dq.offerFirst(x);  dq.offerLast(x);
+dq.pollFirst();    dq.pollLast();
+dq.peekFirst();    dq.peekLast();
+dq.addFirst(x);    dq.addLast(x);  // throws if fails
+dq.removeFirst();  dq.removeLast();
+\end{lstlisting}
+
+\complexity{PriorityQueue --- offer/poll: $O(\log n)$, peek: $O(1)$}{$O(n)$}
+\begin{lstlisting}
+// PriorityQueue (min-heap by default)
+var pq = new PriorityQueue<Integer>();
+pq.offer(x);  // insert O(log n)
+pq.poll();    // remove min O(log n)
+pq.peek();    // view min O(1)
+pq.size();
+
+// Max-heap (reverse natural order)
+var maxPQ = new PriorityQueue<Integer>(
+  Comparator.reverseOrder());
+
+// Custom comparator (e.g., by distance[0])
+var pq2 = new PriorityQueue<int[]>(
+  Comparator.comparingInt(arr -> arr[0]));
+
+// With records - implement Comparable
+record State(int dist, int node)
+  implements Comparable<State> {
+  public int compareTo(State o) {
+    return Integer.compare(dist, o.dist);
+  }
+}
+var pq3 = new PriorityQueue<State>();
+\end{lstlisting}
+
+\subsection{Math}
+\begin{desc}
+Common mathematical operations. Many return \texttt{double}, so cast if needed.
+\end{desc}
+\complexity{All operations: $O(1)$}{$O(1)$}
+\begin{lstlisting}
+// Basic operations
+Math.abs(x);      // absolute value (works on all types)
+Math.max(a, b);   // maximum of two
+Math.min(a, b);   // minimum of two
+Math.pow(a, b);   // a^b (returns double)
+Math.sqrt(x);     // square root
+Math.cbrt(x);     // cube root
+Math.hypot(a, b); // sqrt(a^2 + b^2) without overflow
+
+// Rounding (all take double, return long/int)
+Math.ceil(x);     // round up (returns double)
+Math.floor(x);    // round down (returns double)
+Math.round(x);    // round to nearest (returns long)
+
+// Logarithms and exponentials
+Math.log(x);      // natural log (base e)
+Math.log10(x);    // log base 10
+Math.exp(x);      // e^x
+
+// Trigonometry (takes/returns radians)
+Math.sin(x);  Math.cos(x);  Math.tan(x);
+Math.asin(x); Math.acos(x); Math.atan(x);
+Math.atan2(y, x); // atan(y/x) with correct quadrant
+Math.toRadians(deg);  // degrees to radians
+Math.toDegrees(rad);  // radians to degrees
+
+// Constants
+Math.PI;  // 3.141592653589793
+Math.E;   // 2.718281828459045
+
+// Integer type limits
+Integer.MAX_VALUE;  // 2,147,483,647
+Integer.MIN_VALUE;  // -2,147,483,648
+Long.MAX_VALUE;     // 9,223,372,036,854,775,807
+Long.MIN_VALUE;     // -9,223,372,036,854,775,808
+
+// Avoid overflow: cast to long BEFORE operation
+long product = (long)a * b;
+long sum = (long)a + b;
+\end{lstlisting}
+

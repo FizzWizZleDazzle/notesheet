@@ -1,0 +1,390 @@
+\section{Graph Algorithms}
+% ============================================================
+
+\subsection{Graph Representation}
+\begin{desc}
+Use an \textbf{adjacency list} for most graph problems.
+For unweighted graphs, use \texttt{List<List<Integer>>}.
+For weighted graphs, store \texttt{int[]\{neighbor, weight\}} or use a record.
+Adjacency matrix uses $O(V^2)$ space but allows $O(1)$ edge checks.
+\end{desc}
+\complexity{Build: $O(V + E)$, Edge check (list): $O(\deg(v))$, (matrix): $O(1)$}{List: $O(V+E)$, Matrix: $O(V^2)$}
+\begin{lstlisting}
+// Unweighted graph (adjacency list)
+var adj = new ArrayList<List<Integer>>();
+for (int i = 0; i < n; i++)
+  adj.add(new ArrayList<>());
+adj.get(u).add(v);
+adj.get(v).add(u); // if undirected
+
+// Weighted graph
+var adj = new ArrayList<List<int[]>>();
+for (int i = 0; i < n; i++)
+  adj.add(new ArrayList<>());
+adj.get(u).add(new int[]{v, weight});
+adj.get(v).add(new int[]{u, weight}); // if undirected
+\end{lstlisting}
+
+\subsection{BFS --- Breadth-First Search}
+\begin{desc}
+Explores nodes \textbf{level by level} using a queue. Guarantees the
+\textbf{shortest path in unweighted graphs} (minimum number of edges).\\
+\textbf{Core pattern}: enqueue start $\to$ while queue not empty: dequeue,
+process neighbors, mark visited, and enqueue unvisited neighbors.\\
+\textbf{Use for}: shortest path in unweighted graphs, level-order traversal,
+grid pathfinding, state-space search (puzzles).
+\end{desc}
+\complexity{$O(V + E)$}{$O(V)$}
+\begin{lstlisting}
+// Grid BFS (4-directional movement)
+static final int[] DR = {-1, 1, 0, 0};
+static final int[] DC = {0, 0, -1, 1};
+
+static int bfs(char[][] grid,
+    int sr, int sc, int er, int ec) {
+  int R = grid.length, C = grid[0].length;
+  var dist = new int[R][C];
+  for (var row : dist) Arrays.fill(row, -1);
+
+  Queue<int[]> q = new ArrayDeque<>();
+  q.offer(new int[]{sr, sc});
+  dist[sr][sc] = 0;
+
+  while (!q.isEmpty()) {
+    var cur = q.poll();
+    int r = cur[0], c = cur[1];
+    if (r == er && c == ec)
+      return dist[r][c];
+
+    for (int d = 0; d < 4; d++) {
+      int nr = r + DR[d], nc = c + DC[d];
+      if (nr >= 0 && nr < R
+          && nc >= 0 && nc < C
+          && dist[nr][nc] == -1
+          && grid[nr][nc] != '#') {
+        dist[nr][nc] = dist[r][c] + 1;
+        q.offer(new int[]{nr, nc});
+      }
+    }
+  }
+  return -1; // unreachable
+}
+\end{lstlisting}
+
+\begin{desc}
+\textbf{BFS State-Space Search}: when solving puzzles (e.g., sliding tiles,
+combination locks), model each configuration as a \textit{state}. Encode
+the state (as String, int, or custom object), use a \texttt{HashSet} for visited states,
+and BFS to find the minimum number of moves.
+\end{desc}
+
+\subsection{DFS --- Depth-First Search}
+\begin{desc}
+Explores as \textbf{deep as possible} before backtracking.\\
+\textbf{Use for}: connectivity checking, cycle detection, topological sort,
+tree traversal, flood fill, finding paths (not necessarily shortest).\\
+\textbf{Recursive} is clean but risks stack overflow on deep graphs ($> 10^4$ depth).
+Use \textbf{iterative} with an explicit stack for safety.
+\end{desc}
+\complexity{$O(V + E)$}{$O(V)$}
+\begin{lstlisting}
+// Recursive DFS
+List<List<Integer>> adj;
+boolean[] vis;
+
+static void dfs(int u) {
+  vis[u] = true;
+  for (int v : adj.get(u))
+    if (!vis[v]) dfs(v);
+}
+
+// Iterative DFS (safe for large/deep graphs)
+static void dfsIter(int start) {
+  var stk = new ArrayDeque<Integer>();
+  stk.push(start);
+  vis[start] = true;
+  while (!stk.isEmpty()) {
+    int u = stk.pop();
+    for (int v : adj.get(u))
+      if (!vis[v]) {
+        vis[v] = true;
+        stk.push(v);
+      }
+  }
+}
+\end{lstlisting}
+
+\subsection{Flood Fill / Connected Components}
+\begin{desc}
+Special case of DFS/BFS on a \textbf{2D grid}. Used for counting regions, measuring
+connected area, or checking connectivity.\\
+\textbf{Applications}: image processing, board game logic (Go, chess),
+region counting.\\
+\textbf{Approach}: for each unvisited cell matching the target, start a DFS/BFS
+and count the cells reached.
+\end{desc}
+\complexity{$O(R \cdot C)$ where $R,C$ = grid dimensions}{$O(R \cdot C)$}
+\begin{lstlisting}
+static int flood(char[][] g, boolean[][] vis,
+    int r, int c, char target) {
+  if (r < 0 || r >= g.length
+      || c < 0 || c >= g[0].length
+      || vis[r][c] || g[r][c] != target)
+    return 0;
+  vis[r][c] = true;
+  return 1
+    + flood(g, vis, r+1, c, target)
+    + flood(g, vis, r-1, c, target)
+    + flood(g, vis, r, c+1, target)
+    + flood(g, vis, r, c-1, target);
+}
+
+// Usage: count connected components
+int components = 0;
+var vis = new boolean[R][C];
+for (int i = 0; i < R; i++)
+  for (int j = 0; j < C; j++)
+    if (!vis[i][j] && grid[i][j] == 'X') {
+      components++;
+      flood(grid, vis, i, j, 'X');
+    }
+\end{lstlisting}
+
+\subsection{Dijkstra's Algorithm}
+\begin{desc}
+Finds \textbf{shortest paths from a single source} in graphs with
+\textbf{non-negative edge weights}. Uses a priority queue (min-heap)
+to always expand the closest unfinished node.\\
+\textbf{Key insight}: once a node is dequeued with distance $d$, that is
+its final shortest distance. Skip stale PQ entries by checking if the dequeued
+distance exceeds the current best.\\
+Cannot handle negative edges (use Bellman-Ford instead).
+\end{desc}
+\complexity{$O((V+E) \log V)$}{$O(V + E)$}
+\begin{lstlisting}
+record State(long dist, int node)
+  implements Comparable<State> {
+  public int compareTo(State o) {
+    return Long.compare(dist, o.dist);
+  }
+}
+
+static long[] dijkstra(
+    List<int[]>[] adj, int src, int n) {
+  var dist = new long[n];
+  Arrays.fill(dist, Long.MAX_VALUE);
+  dist[src] = 0;
+
+  var pq = new PriorityQueue<State>();
+  pq.offer(new State(0, src));
+
+  while (!pq.isEmpty()) {
+    var cur = pq.poll();
+    if (cur.dist() > dist[cur.node()])
+      continue; // stale entry, ignore
+
+    for (var e : adj[cur.node()]) {
+      // e = {neighbor, weight}
+      long newDist = dist[cur.node()] + e[1];
+      if (newDist < dist[e[0]]) {
+        dist[e[0]] = newDist;
+        pq.offer(new State(newDist, e[0]));
+      }
+    }
+  }
+  return dist;
+}
+\end{lstlisting}
+
+\subsection{Bellman-Ford}
+\begin{desc}
+Finds shortest paths from a single source, and \textbf{handles negative edge weights}.
+Runs $V-1$ relaxation passes over all edges. A $V$-th pass detecting further
+relaxation means a \textbf{negative cycle} exists.\\
+Slower than Dijkstra but more general. Use when edges can be negative or you
+need to detect negative cycles.
+\end{desc}
+\complexity{$O(V \cdot E)$}{$O(V)$}
+\begin{lstlisting}
+record BFEdge(int u, int v, long w) {}
+
+static long[] bellmanFord(int n, int src,
+    List<BFEdge> edges) {
+  var dist = new long[n];
+  Arrays.fill(dist, Long.MAX_VALUE);
+  dist[src] = 0;
+
+  // Relax all edges V-1 times
+  for (int i = 0; i < n - 1; i++)
+    for (var e : edges)
+      if (dist[e.u()] != Long.MAX_VALUE
+        && dist[e.u()]+e.w() < dist[e.v()])
+        dist[e.v()] = dist[e.u()] + e.w();
+
+  // Check for negative cycle
+  for (var e : edges)
+    if (dist[e.u()] != Long.MAX_VALUE
+      && dist[e.u()]+e.w() < dist[e.v()])
+      return null; // negative cycle detected!
+
+  return dist;
+}
+\end{lstlisting}
+
+\subsection{Floyd-Warshall --- All-Pairs Shortest Paths}
+\begin{desc}
+Computes shortest paths between \textbf{every pair of nodes}. Works with negative
+edges (but no negative cycles). Use when $V$ is small ($\le 400$).\\
+\textbf{Core idea}: for each intermediate node $k$, check if routing through $k$ improves
+the path from $i$ to $j$. Order matters: $k$ loop must be outermost.
+\end{desc}
+\complexity{$O(V^3)$}{$O(V^2)$}
+\begin{lstlisting}
+long INF = Long.MAX_VALUE / 2;
+var dist = new long[n][n];
+for (var row : dist) Arrays.fill(row, INF);
+for (int i = 0; i < n; i++) dist[i][i] = 0;
+// Initialize edge weights in dist[u][v]
+
+for (int k = 0; k < n; k++)
+  for (int i = 0; i < n; i++)
+    for (int j = 0; j < n; j++)
+      dist[i][j] = Math.min(dist[i][j],
+        dist[i][k] + dist[k][j]);
+\end{lstlisting}
+
+\subsection{Union-Find (Disjoint Set Union)}
+\begin{desc}
+Tracks which elements belong to the same \textbf{connected component}.
+Supports two operations: \texttt{find} (which component?) and \texttt{union} (merge two components).
+With \textbf{path compression} and \textbf{union by rank}, both operations are
+nearly $O(1)$ amortized.\\
+\textbf{Use for}: connectivity queries, Kruskal's MST, cycle detection in undirected graphs,
+equivalent class partitioning.
+\end{desc}
+\complexity{$O(\alpha(n)) \approx O(1)$ amortized}{$O(n)$}
+\begin{lstlisting}
+static int[] par, rnk;
+
+static void init(int n) {
+  par = new int[n];
+  rnk = new int[n];
+  for (int i = 0; i < n; i++) par[i] = i;
+}
+
+// Find root with path compression
+static int find(int x) {
+  return par[x] == x ? x
+    : (par[x] = find(par[x]));
+}
+
+// Union by rank
+static boolean union(int a, int b) {
+  int ra = find(a), rb = find(b);
+  if (ra == rb) return false; // already same set
+  if (rnk[ra] < rnk[rb])
+    { int t = ra; ra = rb; rb = t; }
+  par[rb] = ra;
+  if (rnk[ra] == rnk[rb]) rnk[ra]++;
+  return true;
+}
+\end{lstlisting}
+
+\subsection{Kruskal's MST --- Minimum Spanning Tree}
+\begin{desc}
+Finds the minimum-cost subset of edges connecting all nodes.\\
+\textbf{Strategy}: sort edges by weight, greedily add each edge if it
+connects two different components (using Union-Find). Stop after $V-1$ edges.\\
+If fewer than $V-1$ edges are added, the graph is disconnected.
+\end{desc}
+\complexity{$O(E \log E)$}{$O(V + E)$}
+\begin{lstlisting}
+record Edge(int u, int v, int w)
+  implements Comparable<Edge> {
+  public int compareTo(Edge o) {
+    return Integer.compare(w, o.w);
+  }
+}
+
+static long kruskal(int n, List<Edge> edges) {
+  Collections.sort(edges);
+  init(n); // init union-find
+  long cost = 0;
+  int cnt = 0;
+  for (var e : edges) {
+    if (union(e.u(), e.v())) {
+      cost += e.w();
+      if (++cnt == n - 1) break;
+    }
+  }
+  return cnt == n-1 ? cost : -1; // -1 if disconnected
+}
+\end{lstlisting}
+
+\subsection{Topological Sort (Kahn's Algorithm)}
+\begin{desc}
+Produces a linear ordering of a \textbf{Directed Acyclic Graph (DAG)} such that
+for every edge $u \to v$, $u$ appears before $v$.\\
+\textbf{Kahn's algorithm}: repeatedly remove nodes with in-degree 0.
+If the result has fewer than $V$ nodes, a \textbf{cycle} exists.\\
+\textbf{Use for}: task scheduling with dependencies, build systems,
+DP on DAGs (evaluate in topological order).
+\end{desc}
+\complexity{$O(V + E)$}{$O(V + E)$}
+\begin{lstlisting}
+static List<Integer> topoSort(int n,
+    List<List<Integer>> adj) {
+  var indeg = new int[n];
+  for (int u = 0; u < n; u++)
+    for (int v : adj.get(u)) indeg[v]++;
+
+  Queue<Integer> q = new ArrayDeque<>();
+  for (int i = 0; i < n; i++)
+    if (indeg[i] == 0) q.offer(i);
+
+  var order = new ArrayList<Integer>();
+  while (!q.isEmpty()) {
+    int u = q.poll();
+    order.add(u);
+    for (int v : adj.get(u))
+      if (--indeg[v] == 0) q.offer(v);
+  }
+  // If order.size() < n, cycle exists!
+  return order;
+}
+\end{lstlisting}
+
+\subsection{Graph Coloring / Backtracking}
+\begin{desc}
+Assigns colors to nodes such that \textbf{no two adjacent nodes share a color}.
+Determining the minimum colors (chromatic number) is NP-hard, so we use
+\textbf{backtracking}: try each color for the current node, recurse,
+undo (backtrack) if stuck.\\
+\textbf{Applications}: scheduling, register allocation, map coloring.\\
+\textbf{Optimization}: try colors in order, prune early when a neighbor has the same color.
+\end{desc}
+\complexity{$O(m^V)$ worst case, where $m$ = colors, often much faster with pruning}{$O(V)$}
+\begin{lstlisting}
+static boolean canColor(int node, int color,
+    int[] colors, List<List<Integer>> adj) {
+  for (int nb : adj.get(node))
+    if (colors[nb] == color) return false;
+  return true;
+}
+
+static boolean colorGraph(int node, int m,
+    int[] colors, List<List<Integer>> adj) {
+  if (node == colors.length) return true;
+  for (int c = 1; c <= m; c++) {
+    if (canColor(node, c, colors, adj)) {
+      colors[node] = c;
+      if (colorGraph(node+1, m, colors, adj))
+        return true;
+      colors[node] = 0; // backtrack
+    }
+  }
+  return false;
+}
+\end{lstlisting}
+
+% ============================================================

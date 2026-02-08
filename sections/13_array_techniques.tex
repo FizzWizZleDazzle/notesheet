@@ -1,0 +1,96 @@
+\section{Array Techniques}
+% ============================================================
+
+\subsection{Prefix Sums}
+\begin{desc}
+Precompute cumulative sums to answer \textbf{range sum queries in $O(1)$}.\\
+Build: $\text{pre}[i] = a[0] + a[1] + \dots + a[i-1]$.\\
+Query: sum of $a[l..r] = \text{pre}[r+1] - \text{pre}[l]$.\\
+\textbf{2D prefix sums} extend this to rectangles using inclusion-exclusion.\\
+Essential for problems with many range queries.
+\end{desc}
+\complexity{Build: $O(n)$, Query: $O(1)$}{$O(n)$}
+\begin{lstlisting}
+// 1D prefix sum
+var pre = new long[n + 1];
+for (int i = 0; i < n; i++)
+  pre[i + 1] = pre[i] + a[i];
+// sum of a[l..r] inclusive:
+long rangeSum = pre[r + 1] - pre[l];
+
+// 2D prefix sum (rectangle sums)
+var pre = new long[R + 1][C + 1];
+for (int i = 1; i <= R; i++)
+  for (int j = 1; j <= C; j++)
+    pre[i][j] = a[i-1][j-1]
+      + pre[i-1][j] + pre[i][j-1]
+      - pre[i-1][j-1];
+// sum of rectangle (r1,c1) to (r2,c2):
+long s = pre[r2+1][c2+1] - pre[r1][c2+1]
+  - pre[r2+1][c1] + pre[r1][c1];
+\end{lstlisting}
+
+\subsection{Kadane's Algorithm --- Maximum Subarray}
+\begin{desc}
+Finds the contiguous subarray with the \textbf{largest sum} in $O(n)$.\\
+\textbf{Core idea}: at each position, decide whether to extend the current
+subarray or start a new one.\\
+Classic DP problem, also solvable greedily. Can track indices for reconstruction.
+\end{desc}
+\complexity{$O(n)$}{$O(1)$}
+\begin{lstlisting}
+static long kadane(int[] a) {
+  long best = Long.MIN_VALUE, cur = 0;
+  for (int x : a) {
+    cur = Math.max(x, cur + x);
+    best = Math.max(best, cur);
+  }
+  return best;
+}
+
+// With index tracking to find the subarray
+int start = 0, end = 0, tmp = 0;
+long cur = 0, best = Long.MIN_VALUE;
+for (int i = 0; i < n; i++) {
+  cur += a[i];
+  if (cur > best) {
+    best = cur; start = tmp; end = i;
+  }
+  if (cur < 0) {
+    cur = 0; tmp = i + 1;
+  }
+}
+// Subarray is a[start..end]
+\end{lstlisting}
+
+\subsection{Sliding Window / Two Pointers}
+\begin{desc}
+Maintains a ``window'' over a subarray and slides it across, updating in $O(1)$
+per step.\\
+\textbf{Fixed-size}: window of exactly $k$ elements. Slide by removing left, adding right.\\
+\textbf{Variable-size}: two pointers that expand/shrink to satisfy a condition
+(e.g., sum $\le$ target, all unique chars).\\
+Common in substring/subarray problems with constraints.
+\end{desc}
+\complexity{$O(n)$}{$O(1)$ to $O(k)$}
+\begin{lstlisting}
+// Fixed window of size k
+long sum = 0;
+for (int i = 0; i < k; i++) sum += a[i];
+long best = sum;
+for (int i = k; i < n; i++) {
+  sum += a[i] - a[i - k];
+  best = Math.max(best, sum);
+}
+
+// Variable window (two pointer)
+int l = 0;
+long sum = 0, ans = 0;
+for (int r = 0; r < n; r++) {
+  sum += a[r]; // expand window
+  while (sum > target) sum -= a[l++]; // shrink
+  ans = Math.max(ans, r - l + 1);
+}
+\end{lstlisting}
+
+% ============================================================

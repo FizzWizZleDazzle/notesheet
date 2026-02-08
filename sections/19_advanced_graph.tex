@@ -1,0 +1,199 @@
+\section{Advanced Graph Algorithms}
+% ============================================================
+
+\subsection{Strongly Connected Components (Tarjan's)}
+\begin{desc}
+In a directed graph, an SCC is a maximal set of nodes where every node is
+reachable from every other node.\\
+\textbf{Tarjan's algorithm}: single DFS with a stack, tracking discovery time
+(\texttt{disc}) and lowest reachable ancestor (\texttt{low}).
+When \texttt{low[u] == disc[u]}, $u$ is the root of an SCC.\\
+\textbf{Use for}: directed graph analysis, finding cycles, condensation graph.
+\end{desc}
+\complexity{$O(V + E)$}{$O(V)$}
+\begin{lstlisting}
+static int[] disc, low, sccId;
+static boolean[] onStack;
+static Deque<Integer> stack;
+static int time = 0, sccCount = 0;
+
+static void tarjanSCC(int u, List<List<Integer>> adj) {
+  disc[u] = low[u] = time++;
+  stack.push(u);
+  onStack[u] = true;
+
+  for (int v : adj.get(u)) {
+    if (disc[v] == -1) {
+      tarjanSCC(v, adj);
+      low[u] = Math.min(low[u], low[v]);
+    } else if (onStack[v]) {
+      low[u] = Math.min(low[u], disc[v]);
+    }
+  }
+
+  // If u is root of SCC, pop the SCC
+  if (low[u] == disc[u]) {
+    while (true) {
+      int v = stack.pop();
+      onStack[v] = false;
+      sccId[v] = sccCount;
+      if (v == u) break;
+    }
+    sccCount++;
+  }
+}
+
+// Usage
+static void findSCCs(int n, List<List<Integer>> adj) {
+  disc = new int[n];
+  low = new int[n];
+  sccId = new int[n];
+  onStack = new boolean[n];
+  stack = new ArrayDeque<>();
+  Arrays.fill(disc, -1);
+  time = 0; sccCount = 0;
+
+  for (int i = 0; i < n; i++)
+    if (disc[i] == -1) tarjanSCC(i, adj);
+}
+\end{lstlisting}
+
+\subsection{Bridges and Articulation Points (Tarjan's)}
+\begin{desc}
+\textbf{Bridge}: an edge whose removal disconnects the graph.\\
+\textbf{Articulation point}: a vertex whose removal disconnects the graph.\\
+Both found using a single DFS with \texttt{disc} (discovery time) and \texttt{low}
+(lowest reachable ancestor).\\
+\textbf{Bridge}: edge $(u,v)$ is a bridge if $\text{low}[v] > \text{disc}[u]$.\\
+\textbf{Articulation point}: $u$ is one if it's the root with $\ge 2$ children,
+or non-root with a child $v$ where $\text{low}[v] \ge \text{disc}[u]$.
+\end{desc}
+\complexity{$O(V + E)$}{$O(V)$}
+\begin{lstlisting}
+static int[] disc, low;
+static boolean[] isAP;
+static List<int[]> bridges;
+static int time = 0;
+
+static void dfs(int u, int p, List<List<Integer>> adj) {
+  disc[u] = low[u] = time++;
+  int children = 0;
+
+  for (int v : adj.get(u)) {
+    if (disc[v] == -1) {
+      children++;
+      dfs(v, u, adj);
+      low[u] = Math.min(low[u], low[v]);
+
+      // Check for bridge
+      if (low[v] > disc[u])
+        bridges.add(new int[]{u, v});
+
+      // Check for articulation point (non-root)
+      if (p != -1 && low[v] >= disc[u])
+        isAP[u] = true;
+    } else if (v != p) {
+      // Back edge
+      low[u] = Math.min(low[u], disc[v]);
+    }
+  }
+
+  // Check if root is articulation point
+  if (p == -1 && children > 1)
+    isAP[u] = true;
+}
+
+// Usage
+static void findBridgesAndAPs(int n,
+    List<List<Integer>> adj) {
+  disc = new int[n];
+  low = new int[n];
+  isAP = new boolean[n];
+  bridges = new ArrayList<>();
+  Arrays.fill(disc, -1);
+  time = 0;
+
+  for (int i = 0; i < n; i++)
+    if (disc[i] == -1) dfs(i, -1, adj);
+}
+\end{lstlisting}
+
+\subsection{Cycle Detection}
+\begin{desc}
+Detect if a graph contains a cycle.\\
+\textbf{Undirected}: simple DFS---if we visit a neighbor that's already visited
+and it's not our parent, cycle exists.\\
+\textbf{Directed}: 3-color DFS (white/gray/black)---gray nodes are currently
+in the DFS stack. A back edge to a gray node means cycle.
+\end{desc}
+\complexity{$O(V + E)$}{$O(V)$}
+\begin{lstlisting}
+// Undirected graph cycle detection
+static boolean hasCycleUndirected(int u, int p,
+    List<List<Integer>> adj, boolean[] vis) {
+  vis[u] = true;
+  for (int v : adj.get(u)) {
+    if (!vis[v]) {
+      if (hasCycleUndirected(v, u, adj, vis))
+        return true;
+    } else if (v != p) {
+      return true; // visited non-parent = cycle
+    }
+  }
+  return false;
+}
+
+// Directed graph cycle detection (3-color)
+static final int WHITE = 0, GRAY = 1, BLACK = 2;
+static boolean hasCycleDirected(int u, int[] color,
+    List<List<Integer>> adj) {
+  color[u] = GRAY;
+  for (int v : adj.get(u)) {
+    if (color[v] == GRAY) return true; // back edge
+    if (color[v] == WHITE &&
+        hasCycleDirected(v, color, adj))
+      return true;
+  }
+  color[u] = BLACK;
+  return false;
+}
+\end{lstlisting}
+
+\subsection{Bipartite Graph Check}
+\begin{desc}
+A graph is \textbf{bipartite} if its nodes can be colored with 2 colors such that
+no edge connects same-colored nodes. Equivalent to having no odd-length cycles.\\
+\textbf{Algorithm}: 2-color BFS or DFS. Start with color 0, alternate colors.
+If a neighbor already has the same color, not bipartite.
+\end{desc}
+\complexity{$O(V + E)$}{$O(V)$}
+\begin{lstlisting}
+static boolean isBipartite(int n,
+    List<List<Integer>> adj) {
+  var color = new int[n];
+  Arrays.fill(color, -1);
+
+  for (int start = 0; start < n; start++) {
+    if (color[start] != -1) continue;
+
+    Queue<Integer> q = new ArrayDeque<>();
+    q.offer(start);
+    color[start] = 0;
+
+    while (!q.isEmpty()) {
+      int u = q.poll();
+      for (int v : adj.get(u)) {
+        if (color[v] == -1) {
+          color[v] = 1 - color[u];
+          q.offer(v);
+        } else if (color[v] == color[u]) {
+          return false; // same color = not bipartite
+        }
+      }
+    }
+  }
+  return true;
+}
+\end{lstlisting}
+
+% ============================================================

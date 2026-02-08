@@ -1,0 +1,240 @@
+\section{Streams API}
+% ============================================================
+
+\begin{desc}
+Streams provide a functional, declarative approach to processing collections.
+Useful for transforming data, filtering, aggregating, and complex queries.
+Streams are lazy: intermediate operations don't execute until a terminal operation is called.
+\end{desc}
+
+\subsection{Creating Streams}
+\begin{desc}
+Multiple ways to create a stream depending on the data source.
+\end{desc}
+\begin{lstlisting}
+// From collections
+list.stream();
+set.stream();
+map.entrySet().stream();
+map.keySet().stream();
+map.values().stream();
+
+// From arrays
+Arrays.stream(arr);           // entire array
+Arrays.stream(arr, from, to); // range [from, to)
+
+// From values directly
+Stream.of(1, 2, 3);
+IntStream.of(1, 2, 3);
+LongStream.of(1L, 2L, 3L);
+DoubleStream.of(1.0, 2.0);
+
+// Ranges (IntStream, LongStream)
+IntStream.range(0, n);     // [0, n) - excludes n
+IntStream.rangeClosed(1, n); // [1, n] - includes n
+LongStream.range(0, n);
+LongStream.rangeClosed(1, n);
+
+// Generate streams
+Stream.generate(() -> Math.random())
+  .limit(10);
+Stream.iterate(0, i -> i + 1)
+  .limit(10);  // 0, 1, 2, ..., 9
+
+// From String
+"hello".chars(); // IntStream of Unicode values
+"hello".codePoints(); // IntStream of code points
+\end{lstlisting}
+
+\subsection{Intermediate Operations}
+\begin{desc}
+Return a new stream. Lazy---not executed until terminal operation.
+Can chain multiple intermediate operations.
+\end{desc}
+\begin{lstlisting}
+// Filter - keep elements matching predicate
+stream.filter(x -> x > 0);
+stream.filter(s -> s.startsWith("A"));
+stream.filter(s -> s.length() > 3);
+
+// Map - transform each element
+stream.map(x -> x * 2);
+stream.map(String::toUpperCase);
+stream.map(s -> s.length());
+
+// Map to primitive streams (avoids boxing)
+stream.mapToInt(String::length);
+stream.mapToLong(x -> (long)x);
+stream.mapToDouble(x -> (double)x);
+
+// FlatMap - flatten nested structures
+listOfLists.stream()
+  .flatMap(list -> list.stream());
+// Example: List<List<Integer>> to Stream<Integer>
+
+// Distinct - remove duplicates
+stream.distinct();
+
+// Sorted
+stream.sorted();  // natural order
+stream.sorted(Comparator.reverseOrder());
+stream.sorted(Comparator.comparing(Person::getAge));
+stream.sorted(Comparator
+  .comparing(Person::getAge)
+  .thenComparing(Person::getName));
+
+// Limit and skip
+stream.limit(10);  // take first 10 elements
+stream.skip(5);    // skip first 5 elements
+
+// Peek - for debugging, doesn't modify stream
+stream.peek(x -> System.out.println("Debug: " + x));
+\end{lstlisting}
+
+\subsection{Terminal Operations}
+\begin{desc}
+Trigger execution of the stream pipeline and produce a result.
+After a terminal operation, the stream is consumed and cannot be reused.
+\end{desc}
+\begin{lstlisting}
+// Collect to collection
+var list = stream.collect(Collectors.toList());
+var list2 = stream.toList(); // Java 16+, immutable
+var set = stream.collect(Collectors.toSet());
+var arr = stream.toArray(Integer[]::new);
+
+// Joining strings
+String result = stream
+  .map(String::valueOf)
+  .collect(Collectors.joining(", "));
+String withPrefixSuffix = stream
+  .collect(Collectors.joining(", ", "[", "]"));
+
+// Grouping by key
+Map<Integer, List<String>> byLength = stream
+  .collect(Collectors.groupingBy(String::length));
+
+// Partitioning (boolean grouping)
+Map<Boolean, List<Integer>> parts = stream
+  .collect(Collectors.partitioningBy(x -> x > 0));
+// parts.get(true) -> positive
+// parts.get(false) -> non-positive
+
+// Counting
+long count = stream.count();
+long positives = stream.filter(x -> x > 0).count();
+
+// Finding elements
+Optional<Integer> first = stream.findFirst();
+Optional<Integer> any = stream.findAny(); // parallel
+boolean exists = stream.anyMatch(x -> x > 10);
+boolean all = stream.allMatch(x -> x > 0);
+boolean none = stream.noneMatch(x -> x < 0);
+
+// Min / Max
+Optional<Integer> min = stream
+  .min(Comparator.naturalOrder());
+Optional<Integer> max = stream
+  .max(Comparator.naturalOrder());
+Optional<Person> youngest = people.stream()
+  .min(Comparator.comparing(Person::getAge));
+
+// Reduce (fold)
+Optional<Integer> sum = stream
+  .reduce((a, b) -> a + b);
+int sum2 = stream.reduce(0, (a, b) -> a + b);
+int product = stream.reduce(1, (a, b) -> a * b);
+
+// Primitive stream operations (IntStream, etc.)
+int sum = intStream.sum();
+double avg = intStream.average().orElse(0.0);
+int max = intStream.max().orElse(0);
+int min = intStream.min().orElse(0);
+IntSummaryStatistics stats = intStream
+  .summaryStatistics();
+// stats.getMin(), getMax(), getSum(),
+// getAverage(), getCount()
+
+// ForEach - perform action on each element
+stream.forEach(System.out::println);
+stream.forEach(x -> { /* side effect */ });
+\end{lstlisting}
+
+\subsection{Common Stream Patterns}
+\begin{desc}
+Practical examples for frequent tasks.
+\end{desc}
+\begin{lstlisting}
+// Sum of list
+int total = list.stream()
+  .mapToInt(Integer::intValue)
+  .sum();
+
+// Filter and collect
+var positives = list.stream()
+  .filter(x -> x > 0)
+  .toList();
+
+// Map and join to CSV
+String csv = list.stream()
+  .map(String::valueOf)
+  .collect(Collectors.joining(","));
+
+// Find max by property
+Optional<Person> oldest = people.stream()
+  .max(Comparator.comparing(Person::getAge));
+
+// Sort and limit (top N)
+var top5 = list.stream()
+  .sorted(Comparator.reverseOrder())
+  .limit(5)
+  .toList();
+
+// Group by property
+Map<String, List<Person>> byCity = people.stream()
+  .collect(Collectors.groupingBy(Person::getCity));
+
+// Count frequency
+Map<Integer, Long> freq = list.stream()
+  .collect(Collectors.groupingBy(
+    x -> x, Collectors.counting()));
+
+// Sum values after transformation
+long totalLength = strings.stream()
+  .mapToInt(String::length)
+  .sum();
+
+// Convert 2D array to 1D stream
+int sum = Arrays.stream(grid)
+  .flatMapToInt(Arrays::stream)
+  .sum();
+
+// IntStream for indexed loops
+IntStream.range(0, n)
+  .forEach(i -> {
+    // do something with index i
+  });
+
+// Parallel stream (use carefully)
+list.parallelStream()
+  .filter(x -> isPrime(x))
+  .toList();
+
+// Distinct and sort
+var uniqueSorted = list.stream()
+  .distinct()
+  .sorted()
+  .toList();
+
+// Check if all elements satisfy condition
+boolean allPositive = list.stream()
+  .allMatch(x -> x > 0);
+\end{lstlisting}
+
+% ============================================================
+\section{BitSet}
+% ============================================================
+
+\begin{desc}
+A space-efficient, high-performance bit vector. Stores bits as packed \texttt{long[]} internally,
+using only 1 bit per boolean value (64x more space-efficient than \texttt{boolean[]}).\\

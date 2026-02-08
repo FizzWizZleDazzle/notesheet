@@ -1,0 +1,172 @@
+\section{Tree Algorithms}
+% ============================================================
+
+\subsection{Building a Tree from Parent Array}
+\begin{desc}
+Many tree problems give a parent array where \texttt{par[i]} is the parent
+of node $i$ (with $-1$ for the root). Convert to an adjacency list of children
+for easier traversal.\\
+Useful for tree DP, subtree queries, re-rooting problems.
+\end{desc}
+\complexity{Build: $O(n)$, Subtree size: $O(n)$}{$O(n)$}
+\begin{lstlisting}
+static List<List<Integer>> buildTree(
+    int[] par, int n) {
+  var ch = new ArrayList<List<Integer>>();
+  for (int i = 0; i < n; i++)
+    ch.add(new ArrayList<>());
+  int root = -1;
+  for (int i = 0; i < n; i++) {
+    if (par[i] == -1) root = i;
+    else ch.get(par[i]).add(i);
+  }
+  return ch; // ch.get(u) = children of u
+}
+
+// Subtree size (recursive)
+static int subSize(int u,
+    List<List<Integer>> ch) {
+  int sz = 1;
+  for (int v : ch.get(u))
+    sz += subSize(v, ch);
+  return sz;
+}
+\end{lstlisting}
+
+\subsection{Tree Diameter}
+\begin{desc}
+The diameter is the longest path between any two nodes.\\
+\textbf{Algorithm}: Run BFS/DFS twice---
+(1) from any node to find the farthest node $u$,
+(2) from $u$ to find the farthest distance, which is the diameter.\\
+Works because one endpoint of the diameter is always the farthest node from any starting point.
+\end{desc}
+\complexity{$O(V)$}{$O(V)$}
+\begin{lstlisting}
+// Use BFS to find farthest node from start
+static int[] bfsFarthest(List<List<Integer>> adj,
+    int start) {
+  int n = adj.size();
+  var dist = new int[n];
+  Arrays.fill(dist, -1);
+  Queue<Integer> q = new ArrayDeque<>();
+  q.offer(start);
+  dist[start] = 0;
+  int farthest = start, maxDist = 0;
+  while (!q.isEmpty()) {
+    int u = q.poll();
+    for (int v : adj.get(u)) {
+      if (dist[v] == -1) {
+        dist[v] = dist[u] + 1;
+        if (dist[v] > maxDist) {
+          maxDist = dist[v];
+          farthest = v;
+        }
+        q.offer(v);
+      }
+    }
+  }
+  return new int[]{farthest, maxDist};
+}
+
+// Compute diameter
+var res1 = bfsFarthest(adj, 0);
+var res2 = bfsFarthest(adj, res1[0]);
+int diameter = res2[1];
+\end{lstlisting}
+
+\subsection{Lowest Common Ancestor (LCA) --- Binary Lifting}
+\begin{desc}
+Finds the lowest (deepest) common ancestor of two nodes in a tree.\\
+\textbf{Binary Lifting}: precompute $2^k$-th ancestors for all nodes and all $k$.
+Query by lifting both nodes to the same depth, then binary searching for the LCA.\\
+\textbf{Use for}: tree path queries, distance between nodes, path operations.
+\end{desc}
+\complexity{Preprocess: $O(n \log n)$, Query: $O(\log n)$}{$O(n \log n)$}
+\begin{lstlisting}
+static int LOG = 20; // log2(MAX_N)
+static int[][] up; // up[v][k] = 2^k-th ancestor of v
+static int[] depth;
+static List<List<Integer>> adj;
+
+static void dfs(int u, int p) {
+  up[u][0] = p;
+  for (int k = 1; k < LOG; k++)
+    up[u][k] = up[u][k-1] == -1 ? -1
+      : up[up[u][k-1]][k-1];
+
+  for (int v : adj.get(u)) {
+    if (v != p) {
+      depth[v] = depth[u] + 1;
+      dfs(v, u);
+    }
+  }
+}
+
+static void preprocess(int n, int root) {
+  up = new int[n][LOG];
+  depth = new int[n];
+  depth[root] = 0;
+  dfs(root, -1);
+}
+
+static int lca(int u, int v) {
+  // Make u deeper
+  if (depth[u] < depth[v]) {
+    int t = u; u = v; v = t;
+  }
+
+  // Lift u to same depth as v
+  int diff = depth[u] - depth[v];
+  for (int k = 0; k < LOG; k++)
+    if (((diff >> k) & 1) == 1)
+      u = up[u][k];
+
+  if (u == v) return u;
+
+  // Binary search for LCA
+  for (int k = LOG - 1; k >= 0; k--) {
+    if (up[u][k] != up[v][k]) {
+      u = up[u][k];
+      v = up[v][k];
+    }
+  }
+  return up[u][0];
+}
+
+// Distance between u and v
+static int dist(int u, int v) {
+  return depth[u] + depth[v] - 2 * depth[lca(u, v)];
+}
+\end{lstlisting}
+
+\subsection{Euler Tour of Tree}
+\begin{desc}
+Flattens a tree into a 1D array using DFS entry/exit times.
+Enables range queries on subtrees using segment tree or Fenwick tree.\\
+\textbf{Key property}: subtree of $u$ corresponds to range $[\text{in}[u], \text{out}[u]]$.\\
+\textbf{Use for}: subtree queries, path queries with LCA, tree updates.
+\end{desc}
+\complexity{$O(n)$ to build}{$O(n)$}
+\begin{lstlisting}
+static int[] in, out;  // entry and exit times
+static int timer = 0;
+
+static void eulerTour(int u, int p,
+    List<List<Integer>> adj) {
+  in[u] = timer++;
+  for (int v : adj.get(u))
+    if (v != p) eulerTour(v, u, adj);
+  out[u] = timer - 1;
+}
+
+// Usage: check if v is in subtree of u
+static boolean inSubtree(int u, int v) {
+  return in[u] <= in[v] && in[v] <= out[u];
+}
+
+// Subtree range for segment tree queries
+// All nodes in subtree of u have in[node] in [in[u], out[u]]
+\end{lstlisting}
+
+% ============================================================

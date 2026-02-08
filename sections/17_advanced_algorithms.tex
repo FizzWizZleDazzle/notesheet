@@ -1,0 +1,121 @@
+\section{Advanced Algorithms}
+% ============================================================
+
+\subsection{Gaussian Elimination (mod 2)}
+\begin{desc}
+Solves systems of \textbf{XOR equations} (linear algebra over $\text{GF}(2)$).
+Each variable is 0 or 1; addition is XOR ($\oplus$).\\
+\textbf{Applications}: switch/light toggle problems, parity-based puzzles,
+cryptanalysis, error-correcting codes.\\
+\textbf{Approach}: row-reduce the augmented matrix. For each column (variable),
+find a pivot row with 1 in that column, swap it into position, then XOR all
+other rows that have 1 in that column to eliminate them.
+\end{desc}
+\complexity{$O(n^2 m)$ where $n$ = variables, $m$ = equations}{$O(nm)$}
+\begin{lstlisting}
+// A[i][j] = coefficient of variable j in equation i
+// b[i] = right-hand side of equation i
+static int[] solveXOR(boolean[][] A,
+    boolean[] b, int n) {
+  for (int col = 0; col < n; col++) {
+    // Find pivot
+    int piv = -1;
+    for (int r = col; r < b.length; r++)
+      if (A[r][col]) { piv = r; break; }
+    if (piv == -1) continue; // no pivot, skip
+
+    // Swap pivot row into position
+    var tmp = A[col]; A[col] = A[piv]; A[piv] = tmp;
+    var t = b[col]; b[col] = b[piv]; b[piv] = t;
+
+    // Eliminate column from all other rows
+    for (int r = 0; r < b.length; r++) {
+      if (r != col && A[r][col]) {
+        for (int c = 0; c < n; c++)
+          A[r][c] ^= A[col][c];
+        b[r] ^= b[col];
+      }
+    }
+  }
+  // Read solution
+  var sol = new int[n];
+  for (int i = 0; i < n; i++)
+    sol[i] = b[i] ? 1 : 0;
+  return sol;
+}
+\end{lstlisting}
+
+\subsection{Multi-Source BFS (Simultaneous Expansion)}
+\begin{desc}
+When multiple sources grow outward simultaneously (e.g., fire spreading from
+multiple points, flood fill from multiple origins), enqueue \textbf{all sources}
+at the start. Process in order of distance/time using a priority queue or
+level-by-level BFS.\\
+\textbf{Key}: the first arrival at each cell claims it.\\
+Common in simulation, growth modeling, and multi-agent pathfinding.
+\end{desc}
+\complexity{$O((V+E) \log V)$ with PQ, or $O(V+E)$ with level-based BFS}{$O(V)$}
+\begin{lstlisting}
+// Priority queue entry: {time, row, col, sourceId}
+var pq = new PriorityQueue<int[]>(
+  Comparator.comparingInt(a -> a[0]));
+var owner = new int[W][W];
+for (var row : owner) Arrays.fill(row, -1);
+
+// Enqueue all sources with their start times
+for (int i = 0; i < sources.length; i++) {
+  int r = sources[i][0], c = sources[i][1];
+  int startTime = times[i];
+  pq.offer(new int[]{startTime, r, c, i});
+}
+
+while (!pq.isEmpty()) {
+  var cur = pq.poll();
+  int t = cur[0], r = cur[1];
+  int c = cur[2], id = cur[3];
+  if (owner[r][c] != -1) continue; // already claimed
+  owner[r][c] = id;
+
+  for (int d = 0; d < 4; d++) {
+    int nr = r + DR[d], nc = c + DC[d];
+    if (nr>=0 && nr<W && nc>=0 && nc<W
+        && owner[nr][nc] == -1)
+      pq.offer(new int[]{t+1, nr, nc, id});
+  }
+}
+\end{lstlisting}
+
+\subsection{Game Theory --- Minimax}
+\begin{desc}
+When two players alternate making optimal decisions, use \textbf{minimax}.\\
+\textbf{Core idea}: the current player maximizes their score; the opponent
+(next player) minimizes it (from current player's perspective).\\
+With memoization on game state, avoids re-exploring identical positions.\\
+\textbf{Applications}: game AI (chess, tic-tac-toe), optimal play analysis,
+adversarial search.
+\end{desc}
+\complexity{$O(\text{states} \cdot \text{moves per state})$ with memoization}{$O(\text{states})$}
+\begin{lstlisting}
+// Minimax with memoization
+var memo = new HashMap<State, Integer>();
+
+static int minimax(State s, boolean myTurn) {
+  if (s.isTerminal()) return s.score();
+  if (memo.containsKey(s))
+    return memo.get(s);
+
+  int best = myTurn
+    ? Integer.MIN_VALUE  // maximize
+    : Integer.MAX_VALUE; // minimize
+  for (var next : s.possibleMoves()) {
+    int val = minimax(next, !myTurn);
+    best = myTurn
+      ? Math.max(best, val)
+      : Math.min(best, val);
+  }
+  memo.put(s, best);
+  return best;
+}
+\end{lstlisting}
+
+% ============================================================

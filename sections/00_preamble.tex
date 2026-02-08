@@ -1,0 +1,81 @@
+% Preamble and style definitions
+\documentclass[9pt]{extarticle}
+\usepackage[margin=0.4in, headheight=14pt, headsep=8pt]{geometry}
+\usepackage{multicol}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{amsmath,amssymb}
+\usepackage{fancyhdr}
+\usepackage{mdframed}
+\usepackage{tabularx}
+\usepackage{etoolbox}
+\usepackage{needspace}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\textbf{Java 17 Competitive Programming Reference}}
+\fancyhead[R]{\small\thepage}
+\fancyfoot{}
+
+% Spacing
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+\setlist{nosep, leftmargin=14pt}
+\titlespacing*{\section}{0pt}{6pt}{2pt}
+\titlespacing*{\subsection}{0pt}{4pt}{1pt}
+\titleformat{\section}{\bfseries\large}{}{0em}{}[\vspace{-2pt}\rule{\columnwidth}{0.4pt}]
+\titleformat{\subsection}{\bfseries\normalsize}{}{0em}{}
+
+% Code style
+\lstset{
+  language=Java,
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{blue!80!black}\bfseries,
+  commentstyle=\color{green!45!black}\itshape,
+  stringstyle=\color{red!70!black},
+  breaklines=true,
+  tabsize=2,
+  showstringspaces=false,
+  frame=single,
+  rulecolor=\color{black!25},
+  backgroundcolor=\color{gray!5},
+  aboveskip=3pt,
+  belowskip=3pt,
+  xleftmargin=4pt,
+  xrightmargin=4pt,
+  morekeywords={var, record, sealed, permits, yield}
+}
+
+% Description box (nobreak prevents column splits)
+\newenvironment{desc}{%
+  \begin{mdframed}[
+    linewidth=0pt,
+    backgroundcolor=blue!5,
+    innertopmargin=4pt,
+    innerbottommargin=4pt,
+    innerleftmargin=6pt,
+    innerrightmargin=6pt,
+    skipabove=2pt,
+    skipbelow=2pt,
+    nobreak=true
+  ]
+  \small
+}{%
+  \end{mdframed}
+}
+
+% Complexity tag
+\newcommand{\complexity}[2]{%
+  {\footnotesize\sffamily \textbf{Time:} #1 \quad \textbf{Space:} #2}%
+}
+
+% Prevent code listings from splitting across columns/pages
+\BeforeBeginEnvironment{lstlisting}{\par\noindent\minipage{\columnwidth}}
+\AfterEndEnvironment{lstlisting}{\endminipage\par}
+
+% Keep section/subsection headers with following content
+\pretocmd{\section}{\needspace{5\baselineskip}}{}{}
+\pretocmd{\subsection}{\needspace{4\baselineskip}}{}{}

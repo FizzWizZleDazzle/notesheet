@@ -1,0 +1,122 @@
+\textbf{Use for}: large boolean arrays, set operations on integers $0..n-1$,
+bitmask DP with $n > 64$, sieve optimizations.\\
+Much faster than manual bit manipulation on \texttt{long} arrays for large $n$.
+\end{desc}
+\complexity{set/get/clear: $O(1)$, and/or/xor: $O(n/64)$}{$O(n/64)$ where $n$ = number of bits}
+
+\begin{lstlisting}
+// Create BitSet
+var bs = new BitSet();      // empty, grows as needed
+var bs2 = new BitSet(1000); // initial capacity
+
+// Set bits
+bs.set(i);        // set bit i to true
+bs.set(i, true);  // explicit
+bs.set(i, false); // same as clear(i)
+bs.set(from, to); // set range [from, to)
+
+// Clear bits
+bs.clear(i);      // set bit i to false
+bs.clear(from, to); // clear range [from, to)
+bs.clear();       // clear all bits
+
+// Flip/toggle bits
+bs.flip(i);       // toggle bit i
+bs.flip(from, to); // toggle range [from, to)
+
+// Query bits
+boolean val = bs.get(i);  // get bit i
+bs.get(from, to); // returns new BitSet [from, to)
+
+// Check status
+bs.isEmpty();     // true if no bits set
+bs.cardinality(); // count of set bits
+bs.length();      // highest set bit index + 1
+bs.size();        // internal capacity
+
+// Find set bits
+int first = bs.nextSetBit(from);   // -1 if none
+int next = bs.nextClearBit(from);  // -1 if none
+int prev = bs.previousSetBit(from); // -1 if none
+int prevC = bs.previousClearBit(from);
+
+// Set operations (modify this BitSet)
+bs.and(other);    // intersection (this &= other)
+bs.or(other);     // union (this |= other)
+bs.xor(other);    // symmetric diff (this ^= other)
+bs.andNot(other); // difference (this &= ~other)
+
+// Check relationships
+bs.intersects(other); // any bit set in both?
+
+// Conversion
+long[] longs = bs.toLongArray();
+byte[] bytes = bs.toByteArray();
+
+// Iteration over set bits
+for (int i = bs.nextSetBit(0); i >= 0;
+     i = bs.nextSetBit(i + 1)) {
+  // i is a set bit
+}
+
+// Stream of set bits (Java 8+)
+bs.stream(); // IntStream of set bit indices
+\end{lstlisting}
+
+\subsection{BitSet vs Manual Bitmask}
+\begin{desc}
+Choose based on the number of bits needed.
+\end{desc}
+
+\begin{lstlisting}
+// Manual bitmask: use when n <= 64
+long mask = 0;
+mask |= (1L << i);      // set bit i
+mask &= ~(1L << i);     // clear bit i
+mask ^= (1L << i);      // toggle bit i
+boolean set = ((mask >> i) & 1) == 1;
+int popcount = Long.bitCount(mask);
+
+// BitSet: use when n > 64 or need set operations
+var bs = new BitSet();
+bs.set(i);
+bs.clear(i);
+bs.flip(i);
+boolean set = bs.get(i);
+int count = bs.cardinality();
+
+// BitSet is MUCH faster for large n:
+// - Sieve of Eratosthenes: 2-3x faster
+// - DP with large state space
+// - Set operations on large ranges
+\end{lstlisting}
+
+\subsection{BitSet Example: Optimized Sieve}
+\begin{lstlisting}
+static BitSet sieve(int n) {
+  var isComposite = new BitSet(n + 1);
+  isComposite.set(0);
+  isComposite.set(1);
+
+  for (int i = 2; (long)i * i <= n; i++) {
+    if (!isComposite.get(i)) {
+      for (int j = i * i; j <= n; j += i)
+        isComposite.set(j);
+    }
+  }
+
+  // Get primes by flipping
+  isComposite.flip(0, n + 1);
+  return isComposite; // now isPrime
+}
+
+// Count primes
+int primeCount = sieve(1_000_000).cardinality();
+
+// Iterate over primes
+var isPrime = sieve(n);
+for (int p = isPrime.nextSetBit(0); p >= 0;
+     p = isPrime.nextSetBit(p + 1)) {
+  // p is prime
+}
+\end{lstlisting}
