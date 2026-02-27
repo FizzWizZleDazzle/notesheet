@@ -93,4 +93,184 @@ for (int r = 0; r < n; r++) {
 }
 \end{lstlisting}
 
+\subsection{Binary Search}
+\begin{desc}
+\textbf{Lower bound}: first index where \texttt{a[i] >= target} in a sorted array.\\
+\textbf{Binary search on answer}: when feasibility is monotone (false$\to$true),
+binary search over the answer space directly.\\
+Use half-open interval $[\text{lo}, \text{hi})$; the loop exits with \texttt{lo == hi} = answer.
+\end{desc}
+\complexity{$O(\log n)$}{$O(1)$}
+\begin{lstlisting}
+// First index i where a[i] >= target (-1: use a.length)
+static int lowerBound(int[] a, int target) {
+  int lo = 0, hi = a.length;
+  while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (a[mid] < target) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo; // == a.length if all < target
+}
+
+// First index i where a[i] > target
+static int upperBound(int[] a, int target) {
+  int lo = 0, hi = a.length;
+  while (lo < hi) {
+    int mid = lo + (hi - lo) / 2;
+    if (a[mid] <= target) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+// Binary search on answer (minimize k where ok(k) is true)
+// ok must be: false,false,...,true,true,...
+static long bsearchAnswer(long lo, long hi) {
+  while (lo < hi) {
+    long mid = lo + (hi - lo) / 2;
+    if (ok(mid)) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo;
+}
+\end{lstlisting}
+
+\subsection{Difference Array (Range Updates)}
+\begin{desc}
+Apply many \textbf{range increment} operations in $O(1)$ each, then reconstruct
+the array with a single prefix-sum pass.\\
+\textbf{Rule}: to add $x$ to $a[l\ldots r]$, do \texttt{diff[l] += x} and
+\texttt{diff[r+1] -= x}. Prefix-summing \texttt{diff} gives the final values.\\
+Extend to 2D by applying the 1D trick on each axis independently.
+\end{desc}
+\complexity{Update: $O(1)$, Restore: $O(n)$}{$O(n)$}
+\begin{lstlisting}
+long[] diff = new long[n + 1]; // size n+1 avoids bounds check
+
+// Add x to a[l..r] (0-indexed, inclusive)
+void rangeAdd(int l, int r, long x) {
+  diff[l] += x;
+  diff[r + 1] -= x;
+}
+
+// Restore after all updates
+long[] restore() {
+  var a = new long[n];
+  a[0] = diff[0];
+  for (int i = 1; i < n; i++)
+    a[i] = a[i - 1] + diff[i];
+  return a;
+}
+\end{lstlisting}
+
+\subsection{Sparse Table (Static RMQ)}
+\begin{desc}
+Answers \textbf{range min/max queries in $O(1)$} after $O(n \log n)$ preprocessing.
+Only works on \textbf{static arrays} (no updates supported).\\
+Relies on the \textbf{idempotent property}: \texttt{min(a,a)=a}, so overlapping
+ranges are fine.\\
+\textbf{Use for}: static range min/max, LCA via RMQ.
+\end{desc}
+\complexity{Build: $O(n \log n)$, Query: $O(1)$}{$O(n \log n)$}
+\begin{lstlisting}
+static int[][] sp;
+static int[] log2;
+
+static void buildSparse(int[] a) {
+  int n = a.length;
+  int LOG = 32 - Integer.numberOfLeadingZeros(n);
+  sp = new int[LOG][n];
+  sp[0] = a.clone();
+  for (int j = 1; j < LOG; j++)
+    for (int i = 0; i + (1 << j) <= n; i++)
+      sp[j][i] = Math.min(sp[j-1][i],
+        sp[j-1][i + (1 << (j-1))]);
+  log2 = new int[n + 1];
+  for (int i = 2; i <= n; i++)
+    log2[i] = log2[i / 2] + 1;
+}
+
+// Min of a[l..r] inclusive (O(1))
+static int queryMin(int l, int r) {
+  int k = log2[r - l + 1];
+  return Math.min(sp[k][l],
+    sp[k][r - (1 << k) + 1]);
+}
+// Replace Math.min with Math.max for range maximum
+\end{lstlisting}
+
+\subsection{Monotone Stack (Nearest Smaller Element)}
+\begin{desc}
+Find for each element the \textbf{nearest smaller (or greater) element} to its
+left/right in $O(n)$ total.\\
+\textbf{Invariant}: maintain a stack of indices with \textit{increasing} values.
+When a new element is $\le$ the stack top, pop until the invariant is restored.\\
+\textbf{Uses}: largest rectangle in histogram, stock span, next greater element.
+\end{desc}
+\complexity{$O(n)$ (each element pushed/popped once)}{$O(n)$}
+\begin{lstlisting}
+// prev smaller[i] = index of nearest smaller to left (-1 if none)
+static int[] prevSmaller(int[] a) {
+  int n = a.length;
+  var res = new int[n];
+  var stk = new ArrayDeque<Integer>(); // indices
+  for (int i = 0; i < n; i++) {
+    while (!stk.isEmpty()
+        && a[stk.peek()] >= a[i])
+      stk.pop();
+    res[i] = stk.isEmpty() ? -1 : stk.peek();
+    stk.push(i);
+  }
+  return res;
+}
+
+// next smaller[i] = index of nearest smaller to right (n if none)
+static int[] nextSmaller(int[] a) {
+  int n = a.length;
+  var res = new int[n];
+  Arrays.fill(res, n);
+  var stk = new ArrayDeque<Integer>();
+  for (int i = 0; i < n; i++) {
+    while (!stk.isEmpty()
+        && a[stk.peek()] > a[i])
+      res[stk.pop()] = i;
+    stk.push(i);
+  }
+  return res;
+}
+\end{lstlisting}
+
+\subsection{Sliding Window Min/Max (Monotone Deque)}
+\begin{desc}
+Find the minimum (or maximum) in every contiguous window of size $k$ in $O(n)$.\\
+\textbf{Deque invariant}: front = index of current min; indices are in order;
+values are increasing (for min). Remove front if out of window; remove back
+if it's $\ge$ the new element.
+\end{desc}
+\complexity{$O(n)$ total}{$O(k)$}
+\begin{lstlisting}
+// res[i] = min of a[i .. i+k-1]  (length n-k+1)
+static int[] slidingMin(int[] a, int k) {
+  int n = a.length;
+  var res = new int[n - k + 1];
+  var dq = new ArrayDeque<Integer>(); // indices
+  for (int i = 0; i < n; i++) {
+    // Evict expired front
+    while (!dq.isEmpty()
+        && dq.peekFirst() <= i - k)
+      dq.pollFirst();
+    // Maintain monotone (pop back >= current)
+    while (!dq.isEmpty()
+        && a[dq.peekLast()] >= a[i])
+      dq.pollLast();
+    dq.addLast(i);
+    if (i >= k - 1)
+      res[i - k + 1] = a[dq.peekFirst()];
+  }
+  return res;
+}
+// For max: change >= to <= in the back-pop condition
+\end{lstlisting}
+
 % ============================================================

@@ -387,4 +387,34 @@ static boolean colorGraph(int node, int m,
 }
 \end{lstlisting}
 
+\subsection{Prim's Algorithm (MST)}
+\begin{desc}
+Grows an MST one vertex at a time using a \textbf{min-heap}. At each step, pick
+the cheapest edge connecting the current tree to an unvisited vertex.\\
+\textbf{vs Kruskal}: same complexity; Kruskal preferred for sparse graphs
+and when edges are given as a list; Prim better for dense adjacency-list graphs.
+\end{desc}
+\complexity{$O((V+E) \log V)$}{$O(V + E)$}
+\begin{lstlisting}
+// adj[u] = list of {v, weight}
+static long prim(List<int[]>[] adj, int n) {
+  var inMST = new boolean[n];
+  var pq = new PriorityQueue<long[]>(
+    Comparator.comparingLong(a -> a[0]));
+  pq.offer(new long[]{0, 0}); // {cost, node}
+  long total = 0; int cnt = 0;
+  while (!pq.isEmpty() && cnt < n) {
+    var cur = pq.poll();
+    int u = (int) cur[1];
+    if (inMST[u]) continue;
+    inMST[u] = true;
+    total += cur[0]; cnt++;
+    for (var e : adj[u]) // e = {v, w}
+      if (!inMST[e[0]])
+        pq.offer(new long[]{e[1], e[0]});
+  }
+  return cnt == n ? total : -1; // -1 = disconnected
+}
+\end{lstlisting}
+
 % ============================================================

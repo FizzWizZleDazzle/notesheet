@@ -118,6 +118,139 @@ static void findBridgesAndAPs(int n,
 }
 \end{lstlisting}
 
+\subsection{Eulerian Path / Circuit (Hierholzer's)}
+\begin{desc}
+An \textbf{Eulerian path} visits every edge exactly once; an \textbf{Eulerian circuit}
+also returns to the start.\\
+\textbf{Undirected}: circuit exists iff all degrees even; path exists iff exactly
+2 odd-degree nodes (start and end at them).\\
+\textbf{Directed}: circuit iff $\text{in}=\text{out}$ for all nodes; path iff one node
+has $\text{out}-\text{in}=1$ (start) and one has $\text{in}-\text{out}=1$ (end).\\
+Hierholzer's runs in $O(E)$ using a stack.
+\end{desc}
+\complexity{$O(V + E)$}{$O(V + E)$}
+\begin{lstlisting}
+// Undirected Eulerian path/circuit (use edge indices to avoid re-traversal)
+// adj[u] = list of {v, edgeIndex}
+static List<Integer> eulerPath(int n, int m,
+    List<int[]>[] adj, int start) {
+  var used = new boolean[m];  // edge used?
+  var it = new int[n]; // iterator per node
+  var stk = new ArrayDeque<Integer>();
+  var path = new ArrayList<Integer>();
+  stk.push(start);
+  while (!stk.isEmpty()) {
+    int u = stk.peek();
+    boolean found = false;
+    while (it[u] < adj[u].size()) {
+      var e = adj[u].get(it[u]++);
+      if (!used[e[1]]) {
+        used[e[1]] = true;
+        stk.push(e[0]);
+        found = true; break;
+      }
+    }
+    if (!found) { path.add(u); stk.pop(); }
+  }
+  Collections.reverse(path);
+  return path; // size == m+1 if Eulerian path exists
+}
+\end{lstlisting}
+
+\subsection{Maximum Flow (Edmonds-Karp)}
+\begin{desc}
+Finds the maximum flow from source $s$ to sink $t$ using BFS to find
+\textbf{shortest augmenting paths} (Edmonds-Karp variant of Ford-Fulkerson).\\
+Maintains a \textbf{residual graph}: each edge $(u,v,c)$ adds forward cap $c$
+and backward cap $0$. Augmenting pushes flow and updates residuals.\\
+\textbf{Min-cut} = max-flow (max-flow min-cut theorem).
+\end{desc}
+\complexity{$O(VE^2)$}{$O(V^2)$}
+\begin{lstlisting}
+static int N; // number of nodes
+static int[][] cap; // residual capacity matrix
+
+static int bfs(int s, int t, int[] parent) {
+  Arrays.fill(parent, -1);
+  parent[s] = s;
+  Queue<int[]> q = new ArrayDeque<>();
+  q.offer(new int[]{s, Integer.MAX_VALUE});
+  while (!q.isEmpty()) {
+    var cur = q.poll();
+    int u = cur[0], f = cur[1];
+    for (int v = 0; v < N; v++) {
+      if (parent[v] == -1 && cap[u][v] > 0) {
+        parent[v] = u;
+        int nf = Math.min(f, cap[u][v]);
+        if (v == t) return nf;
+        q.offer(new int[]{v, nf});
+      }
+    }
+  }
+  return 0;
+}
+
+static int maxFlow(int s, int t) {
+  int flow = 0, pushed;
+  var parent = new int[N];
+  while ((pushed = bfs(s, t, parent)) > 0) {
+    flow += pushed;
+    int v = t;
+    while (v != s) {
+      int u = parent[v];
+      cap[u][v] -= pushed;
+      cap[v][u] += pushed;
+      v = u;
+    }
+  }
+  return flow;
+}
+// Init: cap = new int[N][N]; add edge (u,v,c):
+//   cap[u][v] += c; (cap[v][u] += c for undirected)
+\end{lstlisting}
+
+\subsection{Bipartite Maximum Matching}
+\begin{desc}
+Find the largest set of edges in a bipartite graph such that each vertex
+is covered by at most one edge.\\
+Uses \textbf{augmenting paths} (Hopcroft-Karp idea simplified): for each left
+vertex, try to find a free right vertex via DFS, possibly rerouting existing matches.\\
+\textbf{Kőnig's theorem}: min vertex cover = max matching in bipartite graphs.
+\end{desc}
+\complexity{$O(V \cdot E)$}{$O(V + E)$}
+\begin{lstlisting}
+static int L, R; // left and right sizes
+static List<Integer>[] adjL; // adjL[u] = right neighbors
+static int[] matchL, matchR;
+static boolean[] visited;
+
+static boolean dfs(int u) {
+  for (int v : adjL[u]) {
+    if (!visited[v]) {
+      visited[v] = true;
+      if (matchR[v] == -1 || dfs(matchR[v])) {
+        matchL[u] = v; matchR[v] = u;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+static int maxMatching() {
+  matchL = new int[L]; matchR = new int[R];
+  Arrays.fill(matchL, -1); Arrays.fill(matchR, -1);
+  int res = 0;
+  for (int u = 0; u < L; u++) {
+    visited = new boolean[R];
+    if (dfs(u)) res++;
+  }
+  return res;
+}
+// matchL[u] = right partner of u (-1 if unmatched)
+// matchR[v] = left partner of v (-1 if unmatched)
+\end{lstlisting}
+
 \subsection{Cycle Detection}
 \begin{desc}
 Detect if a graph contains a cycle.\\

@@ -189,4 +189,69 @@ for (int i = 1; i < R; i++)
 // answer = dp[R-1][C-1]
 \end{lstlisting}
 
+\subsection{Edit Distance (Levenshtein)}
+\begin{desc}
+Minimum \textbf{insert, delete, or substitute} operations to transform $s \to t$.\\
+$\text{dp}[i][j]$ = edit distance between $s[0..i{-}1]$ and $t[0..j{-}1]$.\\
+If chars match: $\text{dp}[i][j]=\text{dp}[i{-}1][j{-}1]$; else
+$1+\min(\text{del},\text{ins},\text{sub})$.
+\end{desc}
+\complexity{$O(mn)$}{$O(mn)$}
+\begin{lstlisting}
+static int editDist(String s, String t) {
+  int m = s.length(), n = t.length();
+  var dp = new int[m + 1][n + 1];
+  for (int i = 0; i <= m; i++) dp[i][0] = i;
+  for (int j = 0; j <= n; j++) dp[0][j] = j;
+  for (int i = 1; i <= m; i++)
+    for (int j = 1; j <= n; j++) {
+      if (s.charAt(i-1) == t.charAt(j-1))
+        dp[i][j] = dp[i-1][j-1]; // match
+      else
+        dp[i][j] = 1 + Math.min(dp[i-1][j-1],
+          Math.min(dp[i-1][j], dp[i][j-1]));
+      // substitute, delete, insert
+    }
+  return dp[m][n];
+}
+\end{lstlisting}
+
+\subsection{DP on DAG (Counting / Longest Path)}
+\begin{desc}
+Process nodes in \textbf{topological order}, propagating values forward.\\
+\textbf{Count paths} from a source, find \textbf{longest/shortest path}, or
+determine which nodes appear on all paths. Works for any DP where
+each state depends only on earlier states in topological order.
+\end{desc}
+\complexity{$O(V + E)$}{$O(V)$}
+\begin{lstlisting}
+// Count paths from src to every node (in topo order)
+static long[] countPaths(int n,
+    List<List<Integer>> adj,
+    List<Integer> topo, int src) {
+  var cnt = new long[n];
+  cnt[src] = 1;
+  for (int u : topo) {
+    if (cnt[u] == 0) continue;
+    for (int v : adj.get(u))
+      cnt[v] = (cnt[v] + cnt[u]) % MOD;
+  }
+  return cnt;
+}
+
+// Longest path in DAG from src (Long.MIN_VALUE = unreachable)
+static long[] longestPath(int n,
+    List<int[]>[] adj, List<Integer> topo,
+    int src) {
+  var d = new long[n];
+  Arrays.fill(d, Long.MIN_VALUE / 2);
+  d[src] = 0;
+  for (int u : topo)
+    if (d[u] > Long.MIN_VALUE / 2)
+      for (var e : adj[u]) // {v, w}
+        d[e[0]] = Math.max(d[e[0]], d[u]+e[1]);
+  return d;
+}
+\end{lstlisting}
+
 % ============================================================

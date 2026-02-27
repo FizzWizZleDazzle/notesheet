@@ -1,0 +1,169 @@
+\section{Matrix \& Functional Graphs}
+% ============================================================
+
+\subsection{Matrix Exponentiation}
+\begin{desc}
+Compute $A^k$ in $O(n^3 \log k)$ using \textbf{fast matrix power} (repeated squaring).\\
+\textbf{Key uses}:
+(1) \textbf{Linear recurrences}: $f(n)$ in $O(\log n)$ (e.g.\ Fibonacci).
+(2) \textbf{Counting paths of length $k$} in a graph: raise the adjacency matrix to power $k$.
+(3) \textbf{Markov chains}: probability distribution after $k$ steps.\\
+Encode the recurrence as a companion matrix $M$ so that
+$M^k \cdot \mathbf{v}_0 = \mathbf{v}_k$.
+\end{desc}
+\complexity{$O(n^3 \log k)$ where $n$ = matrix size}{$O(n^2)$}
+\begin{lstlisting}
+static final long MOD = 1_000_000_007L;
+
+static long[][] multiply(long[][] A, long[][] B) {
+  int n = A.length;
+  var C = new long[n][n];
+  for (int i = 0; i < n; i++)
+    for (int k = 0; k < n; k++) {
+      if (A[i][k] == 0) continue;
+      for (int j = 0; j < n; j++)
+        C[i][j] = (C[i][j]
+          + A[i][k] * B[k][j]) % MOD;
+    }
+  return C;
+}
+
+static long[][] matpow(long[][] A, long p) {
+  int n = A.length;
+  var R = new long[n][n]; // identity
+  for (int i = 0; i < n; i++) R[i][i] = 1;
+  while (p > 0) {
+    if ((p & 1) == 1) R = multiply(R, A);
+    A = multiply(A, A);
+    p >>= 1;
+  }
+  return R;
+}
+
+// n-th Fibonacci in O(log n)
+// F(n) = top-left of [[1,1],[1,0]]^n
+static long fib(long n) {
+  if (n <= 1) return n;
+  var M = new long[][]{{1,1},{1,0}};
+  return matpow(M, n)[0][1];
+}
+
+// General linear recurrence:
+// f(n) = c1*f(n-1) + c2*f(n-2) + ... + ck*f(n-k)
+// Build companion matrix of size k x k,
+// multiply by initial state vector [f(k-1)...f(0)]^T
+\end{lstlisting}
+
+\subsection{Successor Paths (Functional Graph)}
+\begin{desc}
+In a \textbf{functional graph} (each node has exactly one outgoing edge),
+compute $\text{succ}(x, k)$ = node reached from $x$ after $k$ steps.\\
+\textbf{Binary lifting}: precompute $\text{up}[v][j]$ = node after $2^j$ steps.
+Answer each query in $O(\log k)$.\\
+\textbf{Uses}: Cycle detection in functional graphs, jump queries, ancestor queries.
+\end{desc}
+\complexity{Preprocess: $O(n \log k)$, Query: $O(\log k)$}{$O(n \log k)$}
+\begin{lstlisting}
+static int LOG = 30;
+static int[][] up; // up[v][j] = node after 2^j steps
+
+static void buildLifting(int[] succ, int n) {
+  up = new int[n][LOG];
+  for (int v = 0; v < n; v++) up[v][0] = succ[v];
+  for (int j = 1; j < LOG; j++)
+    for (int v = 0; v < n; v++)
+      up[v][j] = up[up[v][j-1]][j-1];
+}
+
+// Node reached from start after k steps
+static int kthSuccessor(int start, long k) {
+  int v = start;
+  for (int j = 0; j < LOG; j++)
+    if (((k >> j) & 1) == 1) v = up[v][j];
+  return v;
+}
+\end{lstlisting}
+
+\subsection{Floyd's Cycle Detection}
+\begin{desc}
+Detects a \textbf{cycle in a functional graph} (successor sequence) using two
+pointers (\textit{slow} moves 1 step, \textit{fast} moves 2 steps) in $O(n)$
+time and $O(1)$ extra space.\\
+After slow and fast meet, reset slow to start and advance both 1-step to find
+the \textbf{cycle entry}. Then count the cycle length.\\
+\textbf{Use for}: rho-factorization, repeated-hash chains, linked-list cycles.
+\end{desc}
+\complexity{$O(n)$}{$O(1)$}
+\begin{lstlisting}
+// succ[v] = successor of v (0-indexed)
+// Returns {cycleStart, cycleLength}
+static int[] floydCycle(int start, int[] succ) {
+  // Phase 1: detect meeting point
+  int slow = succ[start], fast = succ[succ[start]];
+  while (slow != fast) {
+    slow = succ[slow];
+    fast = succ[succ[fast]];
+  }
+  // Phase 2: find cycle entry
+  slow = start;
+  while (slow != fast) {
+    slow = succ[slow]; fast = succ[fast];
+  }
+  int entry = slow;
+  // Phase 3: find cycle length
+  int len = 1;
+  fast = succ[slow];
+  while (fast != slow) { fast = succ[fast]; len++; }
+  return new int[]{entry, len};
+}
+\end{lstlisting}
+
+\subsection{Mo's Algorithm (Offline Range Queries)}
+\begin{desc}
+Processes offline range queries in $O((n+q)\sqrt{n} \cdot f)$ by sorting queries
+to minimize the total movement of the two endpoints.\\
+\textbf{Sort order}: by block of left endpoint, then by right endpoint (alternating
+direction for odd blocks = Hilbert curve optimization).\\
+\textbf{Requires}: adding/removing an element from the active window in $O(f)$;
+queries are answered after adjusting the window.
+\end{desc}
+\complexity{$O((n+q)\sqrt{n})$ with $O(1)$ add/remove}{$O(n + q)$}
+\begin{lstlisting}
+static int BLOCK;
+
+// query[i] = {l, r, originalIndex}
+static int[] moSort(int[][] queries, int n) {
+  BLOCK = Math.max(1, (int) Math.sqrt(n));
+  var idx = new Integer[queries.length];
+  for (int i = 0; i < idx.length; i++) idx[i] = i;
+  Arrays.sort(idx, (a, b) -> {
+    int ba = queries[a][0] / BLOCK;
+    int bb = queries[b][0] / BLOCK;
+    if (ba != bb) return ba - bb;
+    // Alternate direction for odd blocks (optimization)
+    return (ba & 1) == 0
+      ? queries[a][1] - queries[b][1]
+      : queries[b][1] - queries[a][1];
+  });
+  return Arrays.stream(idx).mapToInt(x->x).toArray();
+}
+
+// Template: fill in add(x), remove(x), getAnswer()
+static long[] mo(int[] a, int[][] queries) {
+  int q = queries.length;
+  var ans = new long[q];
+  int[] order = moSort(queries, a.length);
+  int curL = 0, curR = -1;
+  for (int qi : order) {
+    int l = queries[qi][0], r = queries[qi][1];
+    while (curR < r) add(a[++curR]);
+    while (curL > l) add(a[--curL]);
+    while (curR > r) remove(a[curR--]);
+    while (curL < l) remove(a[curL++]);
+    ans[queries[qi][2]] = getAnswer();
+  }
+  return ans;
+}
+\end{lstlisting}
+
+% ============================================================

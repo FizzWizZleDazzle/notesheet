@@ -19,6 +19,7 @@ profiles:
     - 18_tree_algorithms
     - 19_advanced_graph
     - 20_advanced_ds
+    - 22_matrix_misc
     - 21_tips
 
   # Minimal version - core algorithms and API only

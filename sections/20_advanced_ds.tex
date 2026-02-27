@@ -91,4 +91,60 @@ static int rangeQuery(int l, int r) {
 }
 \end{lstlisting}
 
+\subsection{Segment Tree with Lazy Propagation}
+\begin{desc}
+Extends the segment tree to support \textbf{range updates} and \textbf{range queries}
+in $O(\log n)$ each.\\
+\textbf{Lazy tag}: each node holds a pending update not yet pushed to children.
+\textbf{Push down} before descending.\\
+Shown for \textit{range-add} $+$ \textit{range-min} (adapt \texttt{pushDown}
+and merge for other ops, e.g., range-assign + range-sum).
+\end{desc}
+\complexity{Build: $O(n)$, Update/Query: $O(\log n)$}{$O(n)$}
+\begin{lstlisting}
+static long[] tree, lazy;
+
+static void init(int n) {
+  tree = new long[4 * n];
+  lazy = new long[4 * n];
+}
+
+static void pushDown(int nd) {
+  if (lazy[nd] != 0) {
+    for (int c : new int[]{2*nd, 2*nd+1}) {
+      tree[c] += lazy[nd];
+      lazy[c] += lazy[nd];
+    }
+    lazy[nd] = 0;
+  }
+}
+
+// Add val to all elements in [l, r]
+static void rangeAdd(int nd, int s, int e,
+    int l, int r, long val) {
+  if (r < s || e < l) return;
+  if (l <= s && e <= r) {
+    tree[nd] += val; lazy[nd] += val; return;
+  }
+  pushDown(nd);
+  int mid = (s + e) / 2;
+  rangeAdd(2*nd, s, mid, l, r, val);
+  rangeAdd(2*nd+1, mid+1, e, l, r, val);
+  tree[nd] = Math.min(tree[2*nd],tree[2*nd+1]);
+}
+
+// Range minimum query [l, r]
+static long rangeMin(int nd, int s, int e,
+    int l, int r) {
+  if (r < s || e < l) return Long.MAX_VALUE;
+  if (l <= s && e <= r) return tree[nd];
+  pushDown(nd);
+  int mid = (s + e) / 2;
+  return Math.min(rangeMin(2*nd,s,mid,l,r),
+    rangeMin(2*nd+1,mid+1,e,l,r));
+}
+// Usage: init(n); rangeAdd(1,0,n-1,l,r,val);
+//        long ans = rangeMin(1,0,n-1,l,r);
+\end{lstlisting}
+
 % ============================================================

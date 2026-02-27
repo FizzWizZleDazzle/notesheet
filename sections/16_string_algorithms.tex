@@ -68,4 +68,95 @@ static long getHash(int l, int r) {
 }
 \end{lstlisting}
 
+\subsection{Z-Algorithm (Linear Pattern Matching)}
+\begin{desc}
+Computes the \textbf{Z-array}: $z[i]$ = length of the longest substring starting
+at $i$ that is also a prefix of $s$.\\
+\textbf{Pattern matching}: build string \texttt{p + "\#" + t} and look for
+positions where $z[i] = |p|$.\\
+Maintains a window $[l, r]$ (the rightmost Z-box) for $O(n)$ time.
+\end{desc}
+\complexity{$O(n)$}{$O(n)$}
+\begin{lstlisting}
+static int[] zFunction(String s) {
+  int n = s.length();
+  var z = new int[n];
+  z[0] = n; // by convention
+  int l = 0, r = 0;
+  for (int i = 1; i < n; i++) {
+    if (i < r)
+      z[i] = Math.min(r - i, z[i - l]);
+    while (i + z[i] < n
+        && s.charAt(z[i]) == s.charAt(i + z[i]))
+      z[i]++;
+    if (i + z[i] > r) { l = i; r = i + z[i]; }
+  }
+  return z;
+}
+
+// Pattern matching: find all occurrences of p in t
+static List<Integer> zSearch(String p, String t){
+  var z = zFunction(p + "#" + t);
+  var res = new ArrayList<Integer>();
+  int m = p.length();
+  for (int i = m + 1; i < z.length; i++)
+    if (z[i] == m)
+      res.add(i - m - 1); // 0-indexed pos in t
+  return res;
+}
+\end{lstlisting}
+
+\subsection{Trie (Prefix Tree)}
+\begin{desc}
+A tree where each root-to-node path spells a string prefix.
+Supports \textbf{insert} and \textbf{search} in $O(|s|)$.\\
+\textbf{Uses}: autocomplete, prefix queries, counting strings with a given prefix,
+XOR-maximum (binary trie).\\
+Store as a 2D int array (fast) or use \texttt{Map<Character, Node>} (flexible).
+\end{desc}
+\complexity{Insert/Search: $O(|s|)$}{$O(N \cdot A)$ where $A$ = alphabet size}
+\begin{lstlisting}
+static int[][] ch; // ch[node][c] = child node
+static boolean[] end; // is end of a word?
+static int size;
+
+static void initTrie(int maxNodes) {
+  ch = new int[maxNodes][26];
+  end = new boolean[maxNodes];
+  for (var r : ch) Arrays.fill(r, -1);
+  size = 1; // root = 0
+}
+
+static void insert(String s) {
+  int node = 0;
+  for (char c : s.toCharArray()) {
+    int x = c - 'a';
+    if (ch[node][x] == -1)
+      ch[node][x] = size++;
+    node = ch[node][x];
+  }
+  end[node] = true;
+}
+
+static boolean search(String s) {
+  int node = 0;
+  for (char c : s.toCharArray()) {
+    int x = c - 'a';
+    if (ch[node][x] == -1) return false;
+    node = ch[node][x];
+  }
+  return end[node];
+}
+
+static boolean startsWith(String prefix) {
+  int node = 0;
+  for (char c : prefix.toCharArray()) {
+    int x = c - 'a';
+    if (ch[node][x] == -1) return false;
+    node = ch[node][x];
+  }
+  return true;
+}
+\end{lstlisting}
+
 % ============================================================

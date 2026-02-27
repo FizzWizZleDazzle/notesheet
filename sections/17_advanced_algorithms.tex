@@ -118,4 +118,102 @@ static int minimax(State s, boolean myTurn) {
 }
 \end{lstlisting}
 
+\subsection{Interval Scheduling (Greedy)}
+\begin{desc}
+Select the \textbf{maximum number of non-overlapping intervals}.\\
+\textbf{Algorithm}: sort by end time; greedily pick each interval whose start
+$\ge$ last chosen end. Optimal by an exchange argument.\\
+\textbf{Variant --- task with deadlines}: sort by duration (shortest first)
+to minimize total lateness.
+\end{desc}
+\complexity{$O(n \log n)$}{$O(1)$}
+\begin{lstlisting}
+// Max non-overlapping intervals; intervals = {{start,end},...}
+static int maxSchedule(int[][] ivs) {
+  Arrays.sort(ivs, Comparator.comparingInt(a->a[1]));
+  int count = 0, lastEnd = Integer.MIN_VALUE;
+  for (var iv : ivs)
+    if (iv[0] >= lastEnd) {
+      count++; lastEnd = iv[1];
+    }
+  return count;
+}
+
+// Min removals so no two intervals overlap
+static int minRemove(int[][] ivs) {
+  return ivs.length - maxSchedule(ivs);
+}
+\end{lstlisting}
+
+\subsection{Meet in the Middle}
+\begin{desc}
+Split input into \textbf{two halves}, enumerate all $2^{n/2}$ combinations for
+each half, then combine---reducing $O(2^n)$ to $O(2^{n/2} \cdot n)$.\\
+\textbf{Typical use}: subset-sum / 4-sum for $n \le 40$.\\
+\textbf{Pattern}: enumerate first half $\to$ sort $\to$ for each second-half state,
+binary search for complement.
+\end{desc}
+\complexity{$O(2^{n/2} \cdot n)$}{$O(2^{n/2})$}
+\begin{lstlisting}
+// Does any subset of a[] sum to target? (n <= 40)
+static boolean meetMiddle(long[] a, long target) {
+  int n = a.length, h = n / 2;
+  // All subset sums of first half
+  var left = new ArrayList<Long>();
+  for (int m = 0; m < (1 << h); m++) {
+    long s = 0;
+    for (int i = 0; i < h; i++)
+      if ((m >> i & 1) == 1) s += a[i];
+    left.add(s);
+  }
+  Collections.sort(left);
+  // Check second half
+  for (int m = 0; m < (1 << (n-h)); m++) {
+    long s = 0;
+    for (int i = 0; i < n-h; i++)
+      if ((m >> i & 1) == 1) s += a[h+i];
+    if (Collections.binarySearch(left, target-s) >= 0)
+      return true;
+  }
+  return false;
+}
+\end{lstlisting}
+
+\subsection{Nim and Sprague-Grundy Theory}
+\begin{desc}
+\textbf{Nim}: $n$ heaps; alternate removing any amount from one heap; last
+to move wins. Win iff \textbf{XOR of all pile sizes} $\ne 0$.\\
+\textbf{Sprague-Grundy}: every impartial game state has a \textbf{Grundy number}
+$g = \text{mex}\{g(\text{successors})\}$. $g=0$ = losing; $g>0$ = winning.
+Combined games: XOR all Grundy numbers.
+\end{desc}
+\complexity{Nim: $O(n)$. Grundy: $O(S \cdot M)$ ($S$=states, $M$=moves/state)}{$O(S)$}
+\begin{lstlisting}
+// Nim: current player wins iff XOR != 0
+static boolean nimWins(int[] piles) {
+  int xor = 0;
+  for (int p : piles) xor ^= p;
+  return xor != 0;
+}
+
+// Grundy numbers for states 0..maxState
+// nextStates(s) returns reachable states from s
+static int[] computeGrundy(int maxState,
+    java.util.function.IntFunction<int[]>
+      nextStates) {
+  var g = new int[maxState + 1];
+  for (int s = 0; s <= maxState; s++) {
+    var reach = new java.util.HashSet<Integer>();
+    for (int t : nextStates.apply(s))
+      reach.add(g[t]);
+    int mex = 0;
+    while (reach.contains(mex)) mex++;
+    g[s] = mex;
+  }
+  return g;
+  // Game of k piles: XOR g[pile_i]
+  // == 0 => current player loses
+}
+\end{lstlisting}
+
 % ============================================================
